@@ -686,6 +686,13 @@ int get_selection(struct editor *ed, int *start, int *end) {
   return 1;
 }
 
+void get_selection_or_line(struct editor *ed, int *start, int *end) {
+  if (!get_selection(ed, start, end)) {
+    *start = ed->linepos;
+    *end = next_line(ed, ed->linepos);
+  }
+}
+
 int get_selected_text(struct editor *ed, char *buffer, int size) {
   int selstart, selend, len;
 
@@ -716,6 +723,15 @@ int erase_selection(struct editor *ed) {
   ed->anchor = -1;
   ed->refresh = 1;
   return 1;
+}
+
+void erase_selection_or_line(struct editor *ed) {
+  if (!erase_selection(ed)) {
+    moveto(ed, ed->linepos, 0);
+    erase(ed, ed->linepos, next_line(ed, ed->linepos) - ed->linepos);
+    ed->anchor = -1;
+    ed->refresh = 1;
+  }
 }
 
 void select_all(struct editor *ed) {
@@ -1637,19 +1653,20 @@ void redo(struct editor *ed) {
 // Clipboard
 //
 
-void copy_selection(struct editor *ed) {
+void copy_selection_or_line(struct editor *ed) {
   int selstart, selend;
 
-  if (!get_selection(ed, &selstart, &selend)) return;
+  get_selection_or_line(ed, &selstart, &selend);
+  
   ed->env->clipsize = selend - selstart;
   ed->env->clipboard = (unsigned char *) realloc(ed->env->clipboard, ed->env->clipsize);
   if (!ed->env->clipboard) return;
   copy(ed, ed->env->clipboard, selstart, ed->env->clipsize);
 }
 
-void cut_selection(struct editor *ed) {
-  copy_selection(ed);
-  erase_selection(ed);
+void cut_selection_or_line(struct editor *ed) {
+  copy_selection_or_line(ed);
+  erase_selection_or_line(ed);
 }
 
 void paste_selection(struct editor *ed) {
@@ -1659,11 +1676,11 @@ void paste_selection(struct editor *ed) {
   ed->refresh = 1;
 }
 
-void duplicate_selection(struct editor *ed) {
+void duplicate_selection_or_line(struct editor *ed) {
   int selstart, selend, sellen;
   char* buf;
   
-  if (!get_selection(ed, &selstart, &selend)) return;
+  get_selection_or_line(ed, &selstart, &selend);
 
   sellen = selend - selstart;
 
@@ -2064,8 +2081,8 @@ void edit(struct editor *ed) {
         case KEY_CTRL_TAB: ed = next_file(ed); break;
 
         case ctrl('a'): select_all(ed); break;
-        case ctrl('c'): copy_selection(ed); break;
-        case ctrl('d'): duplicate_selection(ed); break;
+        case ctrl('d'): duplicate_selection_or_line(ed); break;
+        case ctrl('c'): copy_selection_or_line(ed); break;
         case ctrl('f'): find_text(ed, 0); break;
         case ctrl('l'): goto_line(ed); break;
         case ctrl('g'): find_text(ed, 1); break;
@@ -2079,7 +2096,7 @@ void edit(struct editor *ed) {
         case KEY_ENTER: newline(ed); break;
         case KEY_BACKSPACE: backspace(ed); break;
         case KEY_DEL: del(ed); break;
-        case ctrl('x'): cut_selection(ed); break;
+        case ctrl('x'): cut_selection_or_line(ed); break;
         case ctrl('z'): undo(ed); break;
         case ctrl('r'): redo(ed); break;
         case ctrl('v'): paste_selection(ed); break;
