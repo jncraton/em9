@@ -686,6 +686,13 @@ int get_selection(struct editor *ed, int *start, int *end) {
   return 1;
 }
 
+void get_selection_or_line(struct editor *ed, int *start, int *end) {
+  if (!get_selection(ed, start, end)) {
+    *start = ed->linepos;
+    *end = next_line(ed, ed->linepos);
+  }
+}
+
 int get_selected_text(struct editor *ed, char *buffer, int size) {
   int selstart, selend, len;
 
@@ -716,6 +723,15 @@ int erase_selection(struct editor *ed) {
   ed->anchor = -1;
   ed->refresh = 1;
   return 1;
+}
+
+void erase_selection_or_line(struct editor *ed) {
+  if (!erase_selection(ed)) {
+    moveto(ed, ed->linepos, 0);
+    erase(ed, ed->linepos, next_line(ed, ed->linepos));
+    ed->anchor = -1;
+    ed->refresh = 1;
+  }
 }
 
 void select_all(struct editor *ed) {
@@ -1640,7 +1656,8 @@ void redo(struct editor *ed) {
 void copy_selection(struct editor *ed) {
   int selstart, selend;
 
-  if (!get_selection(ed, &selstart, &selend)) return;
+  get_selection_or_line(ed, &selstart, &selend);
+  
   ed->env->clipsize = selend - selstart;
   ed->env->clipboard = (unsigned char *) realloc(ed->env->clipboard, ed->env->clipsize);
   if (!ed->env->clipboard) return;
@@ -1649,7 +1666,7 @@ void copy_selection(struct editor *ed) {
 
 void cut_selection(struct editor *ed) {
   copy_selection(ed);
-  erase_selection(ed);
+  erase_selection_or_line(ed);
 }
 
 void paste_selection(struct editor *ed) {
