@@ -1830,25 +1830,30 @@ void pipe_command(struct editor *ed) {
   ed->refresh = 1;
 }
 
-void find_text(struct editor *ed, int next) {
-  int slen;
+void find_text(struct editor *ed) {
+  int slen, selstart, selend;
+  char* search;
 
-  if (!next) {
+  if (!get_selection(ed, &selstart, &selend)) {
     if (!prompt(ed, "Find: ", 1)) {
       ed->refresh = 1;
       return;
     }    
-    if (ed->env->search) free(ed->env->search);
-    ed->env->search = strdup(ed->env->linebuf);
+    search = strdup(ed->env->linebuf);
+  } else {
+    search = malloc(selend - selstart);
+    copy(ed, search, selstart, selend - selstart);
   }
 
-  if (!ed->env->search) return;
-  slen = strlen(ed->env->search);
+  if (!search) return;
+  
+  slen = strlen(search);
+
   if (slen > 0) {
     unsigned char *match;
     
     close_gap(ed);
-    match = strstr(ed->start + ed->linepos + ed->col, ed->env->search);
+    match = strstr(ed->start + ed->linepos + ed->col, search);
     if (match != NULL) {
       int pos = match - ed->start;
       ed->anchor = pos;
@@ -2033,7 +2038,7 @@ void edit(struct editor *ed) {
 #ifdef LESS
       switch (key) {
         case 'q': done = 1; break;
-        case '/': find_text(ed, 0); break;
+        case '/': find_text(ed); break;
       }
 #else
       insert_char(ed, (unsigned char) key);
@@ -2083,9 +2088,8 @@ void edit(struct editor *ed) {
         case ctrl('a'): select_all(ed); break;
         case ctrl('d'): duplicate_selection_or_line(ed); break;
         case ctrl('c'): copy_selection_or_line(ed); break;
-        case ctrl('f'): find_text(ed, 0); break;
+        case ctrl('f'): find_text(ed); break;
         case ctrl('l'): goto_line(ed); break;
-        case ctrl('g'): find_text(ed, 1); break;
         case ctrl('q'): done = 1; break;
 #ifdef LESS
         case KEY_ESC: done = 1; break;
