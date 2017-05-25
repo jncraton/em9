@@ -2090,6 +2090,7 @@ void edit(struct editor *ed) {
         case ctrl('c'): copy_selection_or_line(ed); break;
         case ctrl('f'): find_text(ed); break;
         case ctrl('l'): goto_line(ed); break;
+        case ctrl('g'): goto_line(ed); break;
         case ctrl('q'): done = 1; break;
 #ifdef LESS
         case KEY_ESC: done = 1; break;
