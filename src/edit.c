@@ -728,7 +728,7 @@ int erase_selection(struct editor *ed) {
 void erase_selection_or_line(struct editor *ed) {
   if (!erase_selection(ed)) {
     moveto(ed, ed->linepos, 0);
-    erase(ed, ed->linepos, next_line(ed, ed->linepos));
+    erase(ed, ed->linepos, next_line(ed, ed->linepos) - ed->linepos);
     ed->anchor = -1;
     ed->refresh = 1;
   }
@@ -1653,7 +1653,7 @@ void redo(struct editor *ed) {
 // Clipboard
 //
 
-void copy_selection(struct editor *ed) {
+void copy_selection_or_line(struct editor *ed) {
   int selstart, selend;
 
   get_selection_or_line(ed, &selstart, &selend);
@@ -1664,8 +1664,8 @@ void copy_selection(struct editor *ed) {
   copy(ed, ed->env->clipboard, selstart, ed->env->clipsize);
 }
 
-void cut_selection(struct editor *ed) {
-  copy_selection(ed);
+void cut_selection_or_line(struct editor *ed) {
+  copy_selection_or_line(ed);
   erase_selection_or_line(ed);
 }
 
@@ -2062,7 +2062,7 @@ void edit(struct editor *ed) {
         case KEY_CTRL_TAB: ed = next_file(ed); break;
 
         case ctrl('a'): select_all(ed); break;
-        case ctrl('c'): copy_selection(ed); break;
+        case ctrl('c'): copy_selection_or_line(ed); break;
         case ctrl('f'): find_text(ed, 0); break;
         case ctrl('l'): goto_line(ed); break;
         case ctrl('g'): find_text(ed, 1); break;
@@ -2076,7 +2076,7 @@ void edit(struct editor *ed) {
         case KEY_ENTER: newline(ed); break;
         case KEY_BACKSPACE: backspace(ed); break;
         case KEY_DEL: del(ed); break;
-        case ctrl('x'): cut_selection(ed); break;
+        case ctrl('x'): cut_selection_or_line(ed); break;
         case ctrl('z'): undo(ed); break;
         case ctrl('r'): redo(ed); break;
         case ctrl('v'): paste_selection(ed); break;
