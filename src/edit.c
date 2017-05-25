@@ -1865,27 +1865,27 @@ void find_text(struct editor *ed) {
   free(search);
 }
 
-void goto_line(struct editor *ed) {
-  int lineno, l, pos;
+void goto_line(struct editor *ed, int lineno) {
+  int l, pos;
 
   ed->anchor = -1;
-  if (prompt(ed, "Goto line: ", 1)) {
+  if (!lineno && prompt(ed, "Goto line: ", 1)) {
     lineno = atoi(ed->env->linebuf);
-    if (lineno > 0) {
-      pos = 0;
-      for (l = 0; l < lineno - 1; l++) {
-        pos = next_line(ed, pos);
-        if (pos < 0) break;
-      }
-    } else {
-      pos = -1;
+  }
+  if (lineno > 0) {
+    pos = 0;
+    for (l = 0; l < lineno - 1; l++) {
+      pos = next_line(ed, pos);
+      if (pos < 0) break;
     }
+  } else {
+    pos = -1;
+  }
 
-    if (pos >= 0) {
-      moveto(ed, pos, 1);
-    } else {
-      outch('\007');
-    }
+  if (pos >= 0) {
+    moveto(ed, pos, 1);
+  } else {
+    outch('\007');
   }
   ed->refresh = 1;
 }
@@ -2089,8 +2089,8 @@ void edit(struct editor *ed) {
         case ctrl('d'): duplicate_selection_or_line(ed); break;
         case ctrl('c'): copy_selection_or_line(ed); break;
         case ctrl('f'): find_text(ed); break;
-        case ctrl('l'): goto_line(ed); break;
-        case ctrl('g'): goto_line(ed); break;
+        case ctrl('l'): goto_line(ed, 0); break;
+        case ctrl('g'): goto_line(ed, 0); break;
         case ctrl('q'): done = 1; break;
 #ifdef LESS
         case KEY_ESC: done = 1; break;
@@ -2124,6 +2124,7 @@ int main(int argc, char *argv[]) {
   struct env env;
   int rc;
   int i;
+  char* query; // optional line in file e.g. edit.c:20 for line 20 in this file
   sigset_t blocked_sigmask, orig_sigmask;
 #ifdef __linux__
   struct termios tio;
@@ -2136,13 +2137,27 @@ int main(int argc, char *argv[]) {
   memset(&env, 0, sizeof(env));
   for (i = 1; i < argc; i++) {
     struct editor *ed = create_editor(&env);
+    
+    query = strstr(argv[i], ":");
+    if (query) {
+      query[0] = 0x00; // terminate filename at the colon
+      query += 1;
+    }
+
     rc = load_file(ed, argv[i]);
-    if (rc < 0 && errno == ENOENT) rc = new_file(ed, argv[i]);
-    if (rc < 0) {
+    if (rc < 0 && errno == ENOENT) {
+      rc = new_file(ed, argv[i]);
+    } else {
+      if (query) {
+        goto_line(ed, atoi(query));
+      }
+    }
+    if (rc < 0) { 
       perror(argv[i]);
       return 0;
     }
   }
+  
   if (env.current == NULL) {
     struct editor *ed = create_editor(&env);
     if (isatty(fileno(stdin))) {
