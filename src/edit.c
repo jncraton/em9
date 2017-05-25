@@ -2116,6 +2116,12 @@ void edit(struct editor *ed) {
   }
 }
 
+void goto_anything(struct editor *ed, char *query) {
+  if (query[0] == ':') {
+    goto_line(ed, atoi(query + 1));
+  }
+}
+
 //
 // main
 //
@@ -2125,6 +2131,7 @@ int main(int argc, char *argv[]) {
   int rc;
   int i;
   char* query; // optional line in file e.g. edit.c:20 for line 20 in this file
+  char query_op;
   sigset_t blocked_sigmask, orig_sigmask;
 #ifdef __linux__
   struct termios tio;
@@ -2140,8 +2147,8 @@ int main(int argc, char *argv[]) {
     
     query = strstr(argv[i], ":");
     if (query) {
+      query_op = query[0];
       query[0] = 0x00; // terminate filename at the colon
-      query += 1;
     }
 
     rc = load_file(ed, argv[i]);
@@ -2149,7 +2156,8 @@ int main(int argc, char *argv[]) {
       rc = new_file(ed, argv[i]);
     } else {
       if (query) {
-        goto_line(ed, atoi(query));
+      	query[0] = query_op; // put this back since we removed it terminate the filename
+        goto_anything(ed, query);
       }
     }
     if (rc < 0) { 
