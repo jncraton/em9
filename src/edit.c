@@ -195,7 +195,6 @@ struct env {
   unsigned char *clipboard; // Clipboard
   int clipsize;             // Clipboard size
 
-  unsigned char *search;    // Search text
   unsigned char *linebuf;   // Scratch buffer
 
   int cols;                 // Console columns
@@ -1863,6 +1862,7 @@ void find_text(struct editor *ed) {
     }
   }
   ed->refresh = 1;
+  free(search);
 }
 
 void goto_line(struct editor *ed) {
@@ -2199,7 +2199,6 @@ int main(int argc, char *argv[]) {
   while (env.current) delete_editor(env.current);
 
   if (env.clipboard) free(env.clipboard);
-  if (env.search) free(env.search);
   if (env.linebuf) free(env.linebuf);
 
   setbuf(stdout, NULL);
