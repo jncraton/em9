@@ -1,5 +1,6 @@
 language: c
-install: true
+install: 
+  - apt install expect
 script: 
   - make
   - expect test
