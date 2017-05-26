@@ -2140,6 +2140,7 @@ int main(int argc, char *argv[]) {
   struct env env;
   int rc;
   int i;
+  char* j;
   char* query; // optional line in file e.g. edit.c:20 for line 20 in this file
   char query_op;
   sigset_t blocked_sigmask, orig_sigmask;
@@ -2158,12 +2159,17 @@ int main(int argc, char *argv[]) {
     
     rc = load_file(ed, argv[i]);
     if (rc < 0 && errno == ENOENT) {
-      query = strstr(argv[i], ":");
-      if (!query) query = strstr(argv[i], "#");
+      j = argv[i];
+      
+      // Find last occurrence of query operator
+      while (*j) { 
+        if (*j == ':' || *j == '#') query = j;
+        j += 1;
+      }
     
       if (query) {
         query_op = query[0];
-        query[0] = 0x00; // terminate filename at the colon
+        query[0] = 0x00; // terminate filename at the query operator
       }
 
       rc = load_file(ed, argv[i]);
