@@ -1,4 +1,4 @@
-# em9
+# em9 ![build status](https://api.travis-ci.org/jncraton/em9.png)
 
 A simple text editor. The name "nano" was already taken, so I went with em9 (E to the minus 9).
 
