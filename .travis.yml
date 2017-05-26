@@ -1,2 +1,4 @@
 install: true
-script: make
+script: 
+  - make
+  - ./test
