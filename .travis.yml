@@ -1,6 +1,6 @@
 language: c
 install: 
-  - apt install expect
+  - sudo apt-get install expect
 script: 
   - make
   - expect test
