@@ -1,4 +1,4 @@
 install: true
 script: 
   - make
-  - ./test
+  - expect test
