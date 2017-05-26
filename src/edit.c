@@ -1829,22 +1829,24 @@ void pipe_command(struct editor *ed) {
   ed->refresh = 1;
 }
 
-void find_text(struct editor *ed) {
+void find_text(struct editor *ed, char* search) {
   int slen, selstart, selend;
-  char* search;
+  int own_search = 0; //tracks ownership of search string to determine if it should be freed
 
-  if (!get_selection(ed, &selstart, &selend)) {
-    if (!prompt(ed, "Find: ", 1)) {
-      ed->refresh = 1;
-      return;
-    }    
-    search = strdup(ed->env->linebuf);
-  } else {
-    search = malloc(selend - selstart);
-    copy(ed, search, selstart, selend - selstart);
+  if (!search) {
+    if (!get_selection(ed, &selstart, &selend)) {
+      if (!prompt(ed, "Find: ", 1)) {
+        ed->refresh = 1;
+        return;
+      }    
+      search = strdup(ed->env->linebuf);
+    } else {
+      search = malloc(selend - selstart);
+      copy(ed, search, selstart, selend - selstart);
+      own_search = 1;
+    }
+    if (!search) return;
   }
-
-  if (!search) return;
   
   slen = strlen(search);
 
@@ -1862,7 +1864,7 @@ void find_text(struct editor *ed) {
     }
   }
   ed->refresh = 1;
-  free(search);
+  if (own_search) free(search);
 }
 
 void goto_line(struct editor *ed, int lineno) {
@@ -1888,6 +1890,20 @@ void goto_line(struct editor *ed, int lineno) {
     outch('\007');
   }
   ed->refresh = 1;
+}
+
+void goto_anything(struct editor *ed, char *query) {
+  if (!query) {
+    prompt(ed, "Goto Anything: ", 1);
+    query = ed->env->linebuf;
+  }
+
+  if (query[0] == ':') {
+    goto_line(ed, atoi(query + 1));
+  }
+  if (query[0] == '#') {
+    find_text(ed, query + 1);
+  }
 }
 
 struct editor *next_file(struct editor *ed) {
@@ -2038,7 +2054,7 @@ void edit(struct editor *ed) {
 #ifdef LESS
       switch (key) {
         case 'q': done = 1; break;
-        case '/': find_text(ed); break;
+        case '/': find_text(ed, 0); break;
       }
 #else
       insert_char(ed, (unsigned char) key);
@@ -2088,9 +2104,9 @@ void edit(struct editor *ed) {
         case ctrl('a'): select_all(ed); break;
         case ctrl('d'): duplicate_selection_or_line(ed); break;
         case ctrl('c'): copy_selection_or_line(ed); break;
-        case ctrl('f'): find_text(ed); break;
+        case ctrl('f'): find_text(ed, 0); break;
         case ctrl('l'): goto_line(ed, 0); break;
-        case ctrl('g'): goto_line(ed, 0); break;
+        case ctrl('g'): goto_anything(ed, 0); break;
         case ctrl('q'): done = 1; break;
 #ifdef LESS
         case KEY_ESC: done = 1; break;
@@ -2113,12 +2129,6 @@ void edit(struct editor *ed) {
         case ctrl('w'): close_editor(ed); ed = ed->env->current; break;
       }
     }
-  }
-}
-
-void goto_anything(struct editor *ed, char *query) {
-  if (query[0] == ':') {
-    goto_line(ed, atoi(query + 1));
   }
 }
 
@@ -2146,6 +2156,8 @@ int main(int argc, char *argv[]) {
     struct editor *ed = create_editor(&env);
     
     query = strstr(argv[i], ":");
+    if (!query) query = strstr(argv[i], "#");
+    
     if (query) {
       query_op = query[0];
       query[0] = 0x00; // terminate filename at the colon
