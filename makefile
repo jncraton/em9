@@ -1,4 +1,4 @@
-all: se
+all: em9
 
-se: src/edit.c
-	gcc -O0 src/edit.c -o se
+em9: src/edit.c
+	gcc -O0 src/edit.c -o em9
