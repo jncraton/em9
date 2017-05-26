@@ -2154,24 +2154,29 @@ int main(int argc, char *argv[]) {
   memset(&env, 0, sizeof(env));
   for (i = 1; i < argc; i++) {
     struct editor *ed = create_editor(&env);
+    query = 0;
     
-    query = strstr(argv[i], ":");
-    if (!query) query = strstr(argv[i], "#");
-    
-    if (query) {
-      query_op = query[0];
-      query[0] = 0x00; // terminate filename at the colon
-    }
-
     rc = load_file(ed, argv[i]);
     if (rc < 0 && errno == ENOENT) {
-      rc = new_file(ed, argv[i]);
-    } else {
+      query = strstr(argv[i], ":");
+      if (!query) query = strstr(argv[i], "#");
+    
       if (query) {
-      	query[0] = query_op; // put this back since we removed it terminate the filename
-        goto_anything(ed, query);
+        query_op = query[0];
+        query[0] = 0x00; // terminate filename at the colon
+      }
+
+      rc = load_file(ed, argv[i]);
+      if (rc < 0 && errno == ENOENT) {
+        rc = new_file(ed, argv[i]);
       }
     }
+
+    if (query) {
+      query[0] = query_op; // put this back since we removed it terminate the filename
+      goto_anything(ed, query);
+    }
+
     if (rc < 0) { 
       perror(argv[i]);
       return 0;
