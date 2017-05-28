@@ -1830,22 +1830,24 @@ void pipe_command(struct editor *ed) {
   ed->refresh = 1;
 }
 
-void find_text(struct editor *ed) {
+void find_text(struct editor *ed, char* search) {
   int slen, selstart, selend;
-  char* search;
+  int own_search = 0; //tracks ownership of search string to determine if it should be freed
 
-  if (!get_selection(ed, &selstart, &selend)) {
-    if (!prompt(ed, "Find: ", 1)) {
-      ed->refresh = 1;
-      return;
-    }    
-    search = strdup(ed->env->linebuf);
-  } else {
-    search = malloc(selend - selstart);
-    copy(ed, search, selstart, selend - selstart);
+  if (!search) {
+    if (!get_selection(ed, &selstart, &selend)) {
+      if (!prompt(ed, "Find: ", 1)) {
+        ed->refresh = 1;
+        return;
+      }    
+      search = strdup(ed->env->linebuf);
+    } else {
+      search = malloc(selend - selstart);
+      copy(ed, search, selstart, selend - selstart);
+      own_search = 1;
+    }
+    if (!search) return;
   }
-
-  if (!search) return;
   
   slen = strlen(search);
 
@@ -1863,32 +1865,46 @@ void find_text(struct editor *ed) {
     }
   }
   ed->refresh = 1;
-  free(search);
+  if (own_search) free(search);
 }
 
-void goto_line(struct editor *ed) {
-  int lineno, l, pos;
+void goto_line(struct editor *ed, int lineno) {
+  int l, pos;
 
   ed->anchor = -1;
-  if (prompt(ed, "Goto line: ", 1)) {
+  if (!lineno && prompt(ed, "Goto line: ", 1)) {
     lineno = atoi(ed->env->linebuf);
-    if (lineno > 0) {
-      pos = 0;
-      for (l = 0; l < lineno - 1; l++) {
-        pos = next_line(ed, pos);
-        if (pos < 0) break;
-      }
-    } else {
-      pos = -1;
+  }
+  if (lineno > 0) {
+    pos = 0;
+    for (l = 0; l < lineno - 1; l++) {
+      pos = next_line(ed, pos);
+      if (pos < 0) break;
     }
+  } else {
+    pos = -1;
+  }
 
-    if (pos >= 0) {
-      moveto(ed, pos, 1);
-    } else {
-      outch('\007');
-    }
+  if (pos >= 0) {
+    moveto(ed, pos, 1);
+  } else {
+    outch('\007');
   }
   ed->refresh = 1;
+}
+
+void goto_anything(struct editor *ed, char *query) {
+  if (!query) {
+    prompt(ed, "Goto Anything: ", 1);
+    query = ed->env->linebuf;
+  }
+
+  if (query[0] == ':') {
+    goto_line(ed, atoi(query + 1));
+  }
+  if (query[0] == '#') {
+    find_text(ed, query + 1);
+  }
 }
 
 struct editor *next_file(struct editor *ed) {
@@ -2039,7 +2055,7 @@ void edit(struct editor *ed) {
 #ifdef LESS
       switch (key) {
         case 'q': done = 1; break;
-        case '/': find_text(ed); break;
+        case '/': find_text(ed, 0); break;
       }
 #else
       insert_char(ed, (unsigned char) key);
@@ -2089,9 +2105,9 @@ void edit(struct editor *ed) {
         case ctrl('a'): select_all(ed); break;
         case ctrl('d'): duplicate_selection_or_line(ed); break;
         case ctrl('c'): copy_selection_or_line(ed); break;
-        case ctrl('f'): find_text(ed); break;
-        case ctrl('l'): goto_line(ed); break;
-        case ctrl('g'): goto_line(ed); break;
+        case ctrl('f'): find_text(ed, 0); break;
+        case ctrl('l'): goto_line(ed, 0); break;
+        case ctrl('g'): goto_anything(ed, 0); break;
         case ctrl('q'): done = 1; break;
 #ifdef LESS
         case KEY_ESC: done = 1; break;
@@ -2125,6 +2141,9 @@ int main(int argc, char *argv[]) {
   struct env env;
   int rc;
   int i;
+  char* j;
+  char* query; // optional line in file e.g. edit.c:20 for line 20 in this file
+  char query_op;
   sigset_t blocked_sigmask, orig_sigmask;
 #ifdef __linux__
   struct termios tio;
@@ -2137,13 +2156,40 @@ int main(int argc, char *argv[]) {
   memset(&env, 0, sizeof(env));
   for (i = 1; i < argc; i++) {
     struct editor *ed = create_editor(&env);
+    query = 0;
+    
     rc = load_file(ed, argv[i]);
-    if (rc < 0 && errno == ENOENT) rc = new_file(ed, argv[i]);
-    if (rc < 0) {
+    if (rc < 0 && errno == ENOENT) {
+      j = argv[i];
+      
+      // Find last occurrence of query operator
+      while (*j) { 
+        if (*j == ':' || *j == '#') query = j;
+        j += 1;
+      }
+    
+      if (query) {
+        query_op = query[0];
+        query[0] = 0x00; // terminate filename at the query operator
+      }
+
+      rc = load_file(ed, argv[i]);
+      if (rc < 0 && errno == ENOENT) {
+        rc = new_file(ed, argv[i]);
+      }
+    }
+
+    if (query) {
+      query[0] = query_op; // put this back since we removed it terminate the filename
+      goto_anything(ed, query);
+    }
+
+    if (rc < 0) { 
       perror(argv[i]);
       return 0;
     }
   }
+  
   if (env.current == NULL) {
     struct editor *ed = create_editor(&env);
     if (isatty(fileno(stdin))) {
