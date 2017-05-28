@@ -1115,10 +1115,11 @@ void display_line(struct editor *ed, int pos, int fullline) {
 
   if (col < maxcol) {
     for (s = CLREOL; *s; s++) *bufptr++ = *s;
-    if (fullline) {
-      memcpy(bufptr, "\r\n", 2);
-      bufptr += 2;
-    }
+  }
+
+  if (fullline) {
+    memcpy(bufptr, "\r\n", 2);
+    bufptr += 2;
   }
 
   if (hilite) {
