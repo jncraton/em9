@@ -958,7 +958,7 @@ void draw_full_statusline(struct editor *ed) {
   struct env *env = ed->env;
   int namewidth = env->cols - 28;
   gotoxy(0, env->lines);
-  sprintf(env->linebuf, STATUS_COLOR "%*.*sF1=Help %c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, -namewidth, namewidth, ed->filename, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
+  sprintf(env->linebuf, STATUS_COLOR "%*.*s%c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, -namewidth, namewidth, ed->filename, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
   outstr(env->linebuf);
 }
 
@@ -1736,38 +1736,6 @@ int quit(struct env *env) {
   return 1;
 }
 
-void help(struct editor *ed) {
-  gotoxy(0, 0);
-  clear_screen();
-  outstr("Editor Command Summary\r\n");
-  outstr("======================\r\n\r\n");
-  outstr("<up>         Move one line up (*)         Ctrl+N  Quit\r\n");
-  outstr("<down>       Move one line down (*)       Ctrl+O  Quit\r\n");
-  outstr("<left>       Move one character left (*)  Ctrl+S  Save file\r\n");
-  outstr("<right>      Move one character right (*) Ctrl+W  Quit\r\n");
-  outstr("<pgup>       Move one page up (*)         Ctrl+Q  Quit\r\n");
-  outstr("<pgdn>       Move one page down (*)       Ctrl+P  Pipe command\r\n");
-  outstr("Ctrl+<left>  Move to previous word (*)    Ctrl+A  Select all\r\n");
-  outstr("Ctrl+<right> Move to next word (*)        Ctrl+C  Copy selection to clipboard\r\n");
-  outstr("<home>       Move to start of line (*)    Ctrl+X  Cut selection to clipboard\r\n");
-  outstr("<end>        Move to end of line (*)      Ctrl+V  Paste from clipboard\r\n");
-  outstr("Ctrl+<home>  Move to start of file (*)    Ctrl+Z  Undo\r\n");
-  outstr("Ctrl+<end>   Move to end of file (*)      Ctrl+R  Redo\r\n");
-  outstr("<backspace>  Delete previous character    Ctrl+F  Find text\r\n");
-  outstr("<delete>     Delete current character     Ctrl+G  Find next\r\n"); 
-  outstr("Ctrl+<tab>   Next editor                  Ctrl+L  Goto line\r\n");
-  outstr("<tab>        Indent selection             F1      Help\r\n");
-  outstr("Shift+<tab>  Unindent selection           F3      Navigate to file\r\n");
-  outstr("                                          F5      Redraw screen\r\n");
-  outstr("\r\n(*) Extends selection if combined with Shift");
-  outstr("\r\nPress any key to continue...");
-  fflush(stdout);
-
-  getkey();
-  draw_screen(ed);
-  draw_full_statusline(ed);
-}
-
 //
 // Editor
 //
@@ -1806,10 +1774,6 @@ void edit(struct editor *ed) {
 #endif
     } else {
       switch (key) {
-        case KEY_F1: help(ed); break;
-        case KEY_F5: redraw_screen(ed); break;
-
-        case ctrl('y'): help(ed); break;
         case ctrl('t'): top(ed, 0); break;
         case ctrl('b'): bottom(ed, 0); break;
 
