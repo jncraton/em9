@@ -2000,7 +2000,7 @@ int main(int argc, char *argv[]) {
   outstr(RESET_COLOR CLREOL);
   tcsetattr(0, TCSANOW, &orig_tio);   
 
-  while (env.ed) delete_editor(env.ed);
+  delete_editor(env.ed);
 
   if (env.clipboard) free(env.clipboard);
   if (env.linebuf) free(env.linebuf);
