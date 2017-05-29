@@ -1774,10 +1774,10 @@ void help(struct editor *ed) {
   clear_screen();
   outstr("Editor Command Summary\r\n");
   outstr("======================\r\n\r\n");
-  outstr("<up>         Move one line up (*)         Ctrl+N  New editor\r\n");
-  outstr("<down>       Move one line down (*)       Ctrl+O  Open file\r\n");
+  outstr("<up>         Move one line up (*)         Ctrl+N  Quit\r\n");
+  outstr("<down>       Move one line down (*)       Ctrl+O  Quit\r\n");
   outstr("<left>       Move one character left (*)  Ctrl+S  Save file\r\n");
-  outstr("<right>      Move one character right (*) Ctrl+W  Close file\r\n");
+  outstr("<right>      Move one character right (*) Ctrl+W  Quit\r\n");
   outstr("<pgup>       Move one page up (*)         Ctrl+Q  Quit\r\n");
   outstr("<pgdn>       Move one page down (*)       Ctrl+P  Pipe command\r\n");
   outstr("Ctrl+<left>  Move to previous word (*)    Ctrl+A  Select all\r\n");
