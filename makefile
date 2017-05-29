@@ -15,3 +15,5 @@ release: src/em9.c
 	rm -f em9.xz
 	xz -9e em9
 			
+clean:
+	rm em9*
