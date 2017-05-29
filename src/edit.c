@@ -138,14 +138,12 @@ struct editor {
   int permissions;           // File permissions
 
   struct env *env;           // Reference to global editor environment
-  struct editor *next;       // Next editor
-  struct editor *prev;       // Previous editor
 
   char filename[FILENAME_MAX];
 };
 
 struct env {
-  struct editor *current;   // Current editor
+  struct editor *ed;   // Current editor
 
   unsigned char *clipboard; // Clipboard
   int clipsize;             // Clipboard size
@@ -194,44 +192,16 @@ void reset_undo(struct editor *ed) {
 struct editor *create_editor(struct env *env) {
   struct editor *ed = (struct editor *) malloc(sizeof(struct editor));
   memset(ed, 0, sizeof(struct editor));
-  if (env->current) {
-    ed->next = env->current->next;
-    ed->prev = env->current;
-    env->current->next->prev = ed;
-    env->current->next = ed;
-  } else {
-    ed->next = ed->prev = ed;
-  }
   ed->env = env;
-  env->current = ed;
+  env->ed = ed;
   return ed;
 }
 
 void delete_editor(struct editor *ed) {
-  if (ed->next == ed) {
-    ed->env->current = NULL;
-  } else {
-    ed->env->current = ed->prev;
-  }
-  ed->next->prev = ed->prev;
-  ed->prev->next = ed->next;
+  ed->env->ed = NULL;
   if (ed->start) free(ed->start);
   clear_undo(ed);
   free(ed);
-}
-
-struct editor *find_editor(struct env *env, char *filename) {
-  char fn[FILENAME_MAX];
-  struct editor *ed = env->current;
-  struct editor *start = ed;
-  
-  if (!realpath(filename, fn)) strcpy(fn, filename);
-
-  do {
-    if (strcmp(fn, ed->filename) == 0) return ed;
-    ed = ed->next;
-  } while (ed != start);
-  return NULL;  
 }
 
 int new_file(struct editor *ed, char *filename) {
@@ -1646,18 +1616,13 @@ void open_editor(struct editor *ed) {
   }
   filename = ed->env->linebuf;
   
-  ed = find_editor(ed->env, filename);
-  if (ed) {
-    env->current = ed;
-  } else {
-    ed = create_editor(env);
-    rc = load_file(ed, filename);
-    if (rc < 0) {
-      display_message(ed, "Error %d opening %s (%s)", errno, filename, strerror(errno));
-      sleep(5);
-      delete_editor(ed);
-      ed = env->current;
-    }
+  ed = create_editor(env);
+  rc = load_file(ed, filename);
+  if (rc < 0) {
+    display_message(ed, "Error %d opening %s (%s)", errno, filename, strerror(errno));
+    sleep(5);
+    delete_editor(ed);
+    ed = env->ed;
   }
   ed->refresh = 1;
 }
@@ -1726,7 +1691,7 @@ void close_editor(struct editor *ed) {
   
   delete_editor(ed);
 
-  ed = env->current;
+  ed = env->ed;
   if (!ed) {
     ed = create_editor(env);
     new_file(ed, "");
@@ -1839,87 +1804,16 @@ void goto_anything(struct editor *ed, char *query) {
   }
 }
 
-struct editor *next_file(struct editor *ed) {
-  ed = ed->env->current = ed->next;
-  ed->refresh = 1;
-  return ed;
-}
-
-void jump_to_editor(struct editor *ed) {
-  struct env *env = ed->env;
-  char filename[FILENAME_MAX];
-  int lineno = 0;
-
-  if (!get_selected_text(ed, filename, FILENAME_MAX)) {
-    int pos = ed->linepos + ed->col;
-    char *p = filename;
-    int left = FILENAME_MAX - 1;
-    while (left > 0) {
-      int ch = get(ed, pos);
-      if (ch < 0) break;
-      if (strchr("!@\"'#%&()[]{}*?+:;\r\n\t ", ch)) break;
-      *p++ = ch;
-      left--;
-      pos++;
-    }
-    *p = 0;
-
-    if (get(ed, pos) == ':') {
-      pos++;
-      for (;;) {
-        int ch = get(ed, pos);
-        if (ch < 0) break;
-        if (ch >= '0' && ch <= '9') {
-          lineno = lineno * 10 + (ch - '0');
-        } else {
-          break;
-        }
-        pos++;
-      }
-    }
-  }
-  if (!*filename) return;
-  
-  ed = find_editor(env, filename);
-  if (ed) {
-    env->current = ed;
-  } else {
-    ed = create_editor(env);
-    if (load_file(ed, filename) < 0) {
-      outch('\007');
-      delete_editor(ed);
-      ed = env->current;
-    }
-  }
-  
-  if (lineno > 0) {
-    int pos = 0;
-    while (--lineno > 0) {
-      pos = next_line(ed, pos);
-      if (pos < 0) break;
-    }
-    if (pos >= 0) moveto(ed, pos, 1);
-  }
-
-  ed->refresh = 1;
-}
-
 void redraw_screen(struct editor *ed) {
   get_console_size(ed->env);
   draw_screen(ed);
 }
 
 int quit(struct env *env) {
-  struct editor *ed = env->current;
-  struct editor *start = ed;
-
-  do {
-    if (ed->dirty) {
-      display_message(ed, "Close %s without saving changes (y/n)? ", ed->filename);
-      if (!ask()) return 0;
-    }
-    ed = ed->next;
-  } while (ed != start);
+  if (env->ed->dirty) {
+    display_message(env->ed, "Close %s without saving changes (y/n)? ", env->ed->filename);
+    if (!ask()) return 0;
+  }
 
   return 1;
 }
@@ -1995,7 +1889,6 @@ void edit(struct editor *ed) {
     } else {
       switch (key) {
         case KEY_F1: help(ed); break;
-        case KEY_F3: jump_to_editor(ed); ed = ed->env->current; break;
         case KEY_F5: redraw_screen(ed); break;
 
         case ctrl('y'): help(ed); break;
@@ -2030,8 +1923,6 @@ void edit(struct editor *ed) {
         case KEY_SHIFT_CTRL_HOME: top(ed, 1); break;
         case KEY_SHIFT_CTRL_END: bottom(ed, 1); break;
 
-        case KEY_CTRL_TAB: ed = next_file(ed); break;
-
         case ctrl('a'): select_all(ed); break;
         case ctrl('d'): duplicate_selection_or_line(ed); break;
         case ctrl('c'): copy_selection_or_line(ed); break;
@@ -2052,12 +1943,12 @@ void edit(struct editor *ed) {
         case ctrl('z'): undo(ed); break;
         case ctrl('r'): redo(ed); break;
         case ctrl('v'): paste_selection(ed); break;
-        case ctrl('o'): open_editor(ed); ed = ed->env->current; break;
-        case ctrl('n'): new_editor(ed); ed = ed->env->current; break;
+        case ctrl('o'): open_editor(ed); ed = ed->env->ed; break;
+        case ctrl('n'): new_editor(ed); ed = ed->env->ed; break;
         case ctrl('s'): save_editor(ed); break;
         case ctrl('p'): pipe_command(ed); break;
 #endif
-        case ctrl('w'): close_editor(ed); ed = ed->env->current; break;
+        case ctrl('w'): close_editor(ed); ed = ed->env->ed; break;
       }
     }
   }
@@ -2070,8 +1961,8 @@ void edit(struct editor *ed) {
 int main(int argc, char *argv[]) {
   struct env env;
   int rc;
-  int i;
-  char* j;
+  char* filename;
+  char* i;
   char* query; // optional line in file e.g. edit.c:20 for line 20 in this file
   char query_op;
   sigset_t blocked_sigmask, orig_sigmask;
@@ -2079,43 +1970,44 @@ int main(int argc, char *argv[]) {
   struct termios orig_tio;
 
   memset(&env, 0, sizeof(env));
-  for (i = 1; i < argc; i++) {
-    struct editor *ed = create_editor(&env);
-    query = 0;
+	
+  filename = argv[1];
+	
+  struct editor *ed = create_editor(&env);
+  query = 0;
+  
+  rc = load_file(ed, filename);
+  if (rc < 0 && errno == ENOENT) {
+    i = filename;
     
-    rc = load_file(ed, argv[i]);
-    if (rc < 0 && errno == ENOENT) {
-      j = argv[i];
-      
-      // Find last occurrence of query operator
-      while (*j) { 
-        if (*j == ':' || *j == '#') query = j;
-        j += 1;
-      }
-    
-      if (query) {
-        query_op = query[0];
-        query[0] = 0x00; // terminate filename at the query operator
-      }
-
-      rc = load_file(ed, argv[i]);
-      if (rc < 0 && errno == ENOENT) {
-        rc = new_file(ed, argv[i]);
-      }
+    // Find last occurrence of query operator
+    while (*i) { 
+      if (*i == ':' || *query == '#') query = i;
+      i += 1;
     }
-
+  
     if (query) {
-      query[0] = query_op; // put this back since we removed it terminate the filename
-      goto_anything(ed, query);
+      query_op = query[0];
+      query[0] = 0x00; // terminate filename at the query operator
     }
 
-    if (rc < 0) { 
-      perror(argv[i]);
-      return 0;
+    rc = load_file(ed, filename);
+    if (rc < 0 && errno == ENOENT) {
+      rc = new_file(ed, filename);
     }
   }
-  
-  if (env.current == NULL) {
+
+  if (query) {
+    query[0] = query_op; // put this back since we removed it terminate the filename
+    goto_anything(ed, query);
+  }
+
+  if (rc < 0) { 
+    perror(filename);
+    return 0;
+  }
+
+  if (env.ed == NULL) {
     struct editor *ed = create_editor(&env);
     if (isatty(fileno(stdin))) {
       new_file(ed, "");
@@ -2123,7 +2015,7 @@ int main(int argc, char *argv[]) {
       read_from_stdin(ed);
     }    
   }
-  env.current = env.current->next;
+  env.ed = ed;
 
   if (!isatty(fileno(stdin))) {
     if (!freopen("/dev/tty", "r", stdin)) perror("/dev/tty");
@@ -2142,7 +2034,6 @@ int main(int argc, char *argv[]) {
   }
 
   get_console_size(&env);
-  
   sigemptyset(&blocked_sigmask);
   sigaddset(&blocked_sigmask, SIGINT);
   sigaddset(&blocked_sigmask, SIGTSTP);
@@ -2150,8 +2041,8 @@ int main(int argc, char *argv[]) {
   sigprocmask(SIG_BLOCK, &blocked_sigmask, &orig_sigmask);
 
   for (;;) {
-    if (!env.current) break;
-    edit(env.current);
+    if (!env.ed) break;
+    edit(env.ed);
     if (quit(&env)) break;
   }
 
@@ -2159,7 +2050,7 @@ int main(int argc, char *argv[]) {
   outstr(RESET_COLOR CLREOL);
   tcsetattr(0, TCSANOW, &orig_tio);   
 
-  while (env.current) delete_editor(env.current);
+  while (env.ed) delete_editor(env.ed);
 
   if (env.clipboard) free(env.clipboard);
   if (env.linebuf) free(env.linebuf);
