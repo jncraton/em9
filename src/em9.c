@@ -1285,11 +1285,15 @@ void bottom(struct editor *ed, int select) {
 }
 
 void pageup(struct editor *ed, int select) {
-  for (int i = 0; i < PAGESIZE; i++) up(ed, select);
+  int i;
+
+  for (i = 0; i < PAGESIZE; i++) up(ed, select);
 }
 
 void pagedown(struct editor *ed, int select) {
-  for (int i = 0; i < PAGESIZE; i++) down(ed, select);
+  int i;
+
+  for (i = 0; i < PAGESIZE; i++) down(ed, select);
 }
 
 //
