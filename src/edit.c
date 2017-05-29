@@ -8,16 +8,10 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#ifdef SANOS
-#include <os.h>
-#endif
-
-#ifdef __linux__
 #include <sys/ioctl.h>
 #include <termios.h>
 #define O_BINARY 0
 int linux_console = 0;
-#endif
 
 #define MINEXTEND      32768
 #define LINEBUF_EXTRA  32
@@ -35,15 +29,9 @@ int linux_console = 0;
 #define GOTOXY           "\033[%d;%dH"
 #define RESET_COLOR      "\033[0m"
 
-#ifdef COLOR
-#define TEXT_COLOR       "\033[44m\033[37m\033[1m"
-#define SELECT_COLOR     "\033[47m\033[37m\033[1m"
-#define STATUS_COLOR     "\033[0m\033[47m\033[30m"
-#else
 #define TEXT_COLOR       "\033[0m"
 #define SELECT_COLOR     "\033[7m\033[1m"
 #define STATUS_COLOR     "\033[1m\033[7m"
-#endif
 
 //
 // Key codes
@@ -711,17 +699,11 @@ void select_all(struct editor *ed) {
 //
 
 void get_console_size(struct env *env) {
-#ifdef __linux__
   struct winsize ws;
 
   ioctl(0, TIOCGWINSZ, &ws);
   env->cols = ws.ws_col;
   env->lines = ws.ws_row - 1;
-#else
-  struct term *term = gettib()->proc->term;
-  env->cols = term->cols;
-  env->lines = term->lines - 1;
-#endif
   env->linebuf = realloc(env->linebuf, env->cols + LINEBUF_EXTRA);
 }
 
@@ -754,7 +736,6 @@ void gotoxy(int col, int line) {
 
 void get_modifier_keys(int *shift, int *ctrl) {
   *shift = *ctrl = 0;
-#ifdef __linux__
   if (linux_console) {
     char modifiers = 6;
     if (ioctl(0, TIOCLINUX, &modifiers) >= 0) {
@@ -762,7 +743,6 @@ void get_modifier_keys(int *shift, int *ctrl) {
       if (modifiers & 4) *ctrl = 1;
     }
   }
-#endif
 }
 
 int getkey() {
@@ -778,13 +758,8 @@ int getkey() {
       if (shift) return KEY_SHIFT_TAB;
       if (ctrl) return KEY_CTRL_TAB;
       return KEY_TAB;
-#ifdef SANOS
-    case 0x0D: return gettib()->proc->term->type == TERM_CONSOLE ? KEY_ENTER : KEY_UNKNOWN;
-    case 0x0A: return gettib()->proc->term->type != TERM_CONSOLE ? KEY_ENTER : KEY_UNKNOWN;
-#else
     case 0x0D: return KEY_ENTER;
     case 0x0A: return KEY_ENTER;
-#endif
     case 0x1B:
       ch = getchar();
       switch (ch) {
@@ -1069,7 +1044,6 @@ void display_line(struct editor *ed, int pos, int fullline) {
     pos++;
   }
 
-#ifdef __linux__
   if (hilite) {
     while (col < maxcol) {
       *bufptr++ = ' ';
@@ -1078,7 +1052,6 @@ void display_line(struct editor *ed, int pos, int fullline) {
   } else {
     if (col == margin) *bufptr++ = ' ';
   }
-#endif
 
   if (col < maxcol) {
     for (s = CLREOL; *s; s++) *bufptr++ = *s;
@@ -1400,11 +1373,7 @@ void newline(struct editor *ed) {
   unsigned char ch;
 
   erase_selection(ed);
-#ifdef __linux__
   insert(ed, ed->linepos + ed->col, "\n", 1);
-#else
-  insert(ed, ed->linepos + ed->col, "\r\n", 2);
-#endif
   ed->col = ed->lastcol = 0;
   ed->line++;
   p = ed->linepos;
@@ -1776,11 +1745,7 @@ void pipe_command(struct editor *ed) {
     return;
   }
   
-#ifdef SANOS
-  f = popen(ed->env->linebuf, "r2");
-#else
   f = popen(ed->env->linebuf, "r");
-#endif
   if (!f) {
     display_message(ed, "Error %d running command (%s)", errno, strerror(errno));
     sleep(5);
@@ -2033,11 +1998,9 @@ void edit(struct editor *ed) {
         case KEY_F3: jump_to_editor(ed); ed = ed->env->current; break;
         case KEY_F5: redraw_screen(ed); break;
 
-#ifdef __linux__
         case ctrl('y'): help(ed); break;
         case ctrl('t'): top(ed, 0); break;
         case ctrl('b'): bottom(ed, 0); break;
-#endif
 
         case KEY_UP: up(ed, 0); break;
         case KEY_DOWN: down(ed, 0); break;
@@ -2112,13 +2075,8 @@ int main(int argc, char *argv[]) {
   char* query; // optional line in file e.g. edit.c:20 for line 20 in this file
   char query_op;
   sigset_t blocked_sigmask, orig_sigmask;
-#ifdef __linux__
   struct termios tio;
   struct termios orig_tio;
-#endif
-#ifdef SANOS
-  struct term *term;
-#endif
 
   memset(&env, 0, sizeof(env));
   for (i = 1; i < argc; i++) {
@@ -2167,19 +2125,12 @@ int main(int argc, char *argv[]) {
   }
   env.current = env.current->next;
 
-#ifdef SANOS
-  term = gettib()->proc->term;
-  if (fdin != term->ttyin) dup2(term->ttyin, fdin);
-  if (fdout != term->ttyout) dup2(term->ttyout, fdout);
-#else
   if (!isatty(fileno(stdin))) {
     if (!freopen("/dev/tty", "r", stdin)) perror("/dev/tty");
   }
-#endif
 
   setvbuf(stdout, NULL, 0, 8192);
 
-#ifdef __linux__
   tcgetattr(0, &orig_tio);
   cfmakeraw(&tio);  
   tcsetattr(0, TCSANOW, &tio);
@@ -2189,7 +2140,6 @@ int main(int argc, char *argv[]) {
     outstr("\033[3 q");  // xterm
     outstr("\033]50;CursorShape=2\a");  // KDE
   }
-#endif
 
   get_console_size(&env);
   
@@ -2207,9 +2157,7 @@ int main(int argc, char *argv[]) {
 
   gotoxy(0, env.lines + 1);
   outstr(RESET_COLOR CLREOL);
-#ifdef __linux__
   tcsetattr(0, TCSANOW, &orig_tio);   
-#endif
 
   while (env.current) delete_editor(env.current);
 
