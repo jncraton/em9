@@ -8,10 +8,18 @@ This editor is a fork of the excellent, light-weight [Sanos editor](http://www.j
 
 As the Sanos editor is written for the Sanos operating system, it lacks much integration with Linux or other mainstream operating systems. For example, it uses an internal clipboard buffer rather than integrating with the OS clipboard. One of my goals for this fork is to have tigher integration with Linux and greater flexibility when invoking the editor from the command line. The original Sanos editor accepts no flags or configuration options.
 
+My goal is for em9 to be able edit a text file effectively. Sticking with the single responsibility principle, em9 will:
+
+- Not functioning as an IDE in any way
+- Not be capable of running shell commands
+- Only be able to edit one file at a time
+- Not support plugins. The source code is short and simple, so you can add any features that matter to you. If a feature is small and you believe it would be useful to most users, feel free to send a pull request.
+
 I have made the following changes:
 
-- Ctrl+d to duplicate the current selection or line
-- Cut/Copy now operate on the current line if there is no active selection
+- Removed multiple editor support
 - Movement Commands - These can be accessed via Ctrl+g or appended to filenames when opening
     - `:{line number}` - Jumps to a `line number`
     - `#{needle}` - Jumps to next occurrence of `needle` in file
+- Cut/Copy now operate on the current line if there is no active selection
+- Ctrl+d to duplicate the current selection or line
