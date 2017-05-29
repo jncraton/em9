@@ -1,0 +1,6 @@
+- Removed multiple editor support
+- Movement Commands - These can be accessed via Ctrl+g or appended to filenames when opening
+    - `:{line number}` - Jumps to a `line number`
+    - `#{needle}` - Jumps to next occurrence of `needle` in file
+- Cut/Copy now operate on the current line if there is no active selection
+- Ctrl+d to duplicate the current selection or line
