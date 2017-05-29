@@ -1839,16 +1839,14 @@ int main(int argc, char *argv[]) {
 
   if (argc == 2) {
     filename = argv[1];
-    
     query = 0;
     
-    rc = load_file(env.ed, filename);
-    if (rc < 0 && errno == ENOENT) {
+    if (load_file(env.ed, filename) < 0) {
       i = filename;
       
       // Find last occurrence of query operator
       while (*i) { 
-        if (*i == ':' || *query == '#') query = i;
+        if (*i == ':' || *i == '#') query = i;
         i += 1;
       }
     
@@ -1857,20 +1855,14 @@ int main(int argc, char *argv[]) {
         query[0] = 0x00; // terminate filename at the query operator
       }
 
-      rc = load_file(env.ed, filename);
-      if (rc < 0 && errno == ENOENT) {
+      if (load_file(env.ed, filename) < 0) {
+        perror(filename);
       	return 0;
       }
-    }
-
-    if (query) {
-      query[0] = query_op; // put this back since we removed it terminate the filename
-      goto_anything(env.ed, query);
-    }
-
-    if (rc < 0) { 
-      perror(filename);
-      return 0;
+      if (query) {
+        query[0] = query_op; // put this back since we removed it terminate the filename
+        goto_anything(env.ed, query);
+      }
     }
   } else {
     if (isatty(fileno(stdin))) {
