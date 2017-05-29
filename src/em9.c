@@ -208,28 +208,6 @@ void delete_editor(struct editor *ed) {
   free(ed);
 }
 
-int new_file(struct editor *ed, char *filename) {
-  if (*filename) {
-    strcpy(ed->filename, filename);
-  } else {
-    sprintf(ed->filename, "Untitled-%d", ++ed->env->untitled);
-    ed->newfile = 1;
-  }
-  ed->permissions = 0644;
-
-  ed->start = (unsigned char *) malloc(MINEXTEND);
-  if (!ed->start) return -1;
-#ifdef DEBUG
-  memset(ed->start, 0, MINEXTEND);
-#endif
-
-  ed->gap = ed->start;
-  ed->rest = ed->end = ed->gap + MINEXTEND;
-  ed->anchor = -1;
-  
-  return 0;
-}
-
 int load_file(struct editor *ed, char *filename) {
   struct stat statbuf;
   int length;
@@ -1881,7 +1859,7 @@ int main(int argc, char *argv[]) {
 
       rc = load_file(env.ed, filename);
       if (rc < 0 && errno == ENOENT) {
-        rc = new_file(env.ed, filename);
+      	return 0;
       }
     }
 
@@ -1896,7 +1874,7 @@ int main(int argc, char *argv[]) {
     }
   } else {
     if (isatty(fileno(stdin))) {
-      new_file(env.ed, "");
+      return 0;
     } else {
       read_from_stdin(env.ed);
     }    
