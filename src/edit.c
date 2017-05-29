@@ -1605,34 +1605,6 @@ void duplicate_selection_or_line(struct editor *ed) {
 // Editor Commands
 //
 
-void open_editor(struct editor *ed) {
-  int rc;
-  char *filename;
-  struct env *env = ed->env;
-
-  if (!prompt(ed, "Open file: ", 1)) {
-    ed->refresh = 1;
-    return;
-  }
-  filename = ed->env->linebuf;
-  
-  ed = create_editor(env);
-  rc = load_file(ed, filename);
-  if (rc < 0) {
-    display_message(ed, "Error %d opening %s (%s)", errno, filename, strerror(errno));
-    sleep(5);
-    delete_editor(ed);
-    ed = env->ed;
-  }
-  ed->refresh = 1;
-}
-
-void new_editor(struct editor *ed) {
-  ed = create_editor(ed->env);
-  new_file(ed, "");
-  ed->refresh = 1;
-}
-
 void read_from_stdin(struct editor *ed) {
   char buffer[512];
   int n, pos;
@@ -1675,27 +1647,6 @@ void save_editor(struct editor *ed) {
     sleep(5);
   }
 
-  ed->refresh = 1;
-}
-
-void close_editor(struct editor *ed) {
-  struct env *env = ed->env;
-  
-  if (ed->dirty) {
-    display_message(ed, "Close %s without saving changes (y/n)? ", ed->filename);
-    if (!ask()) {
-      ed->refresh = 1;
-      return;
-    }
-  }
-  
-  delete_editor(ed);
-
-  ed = env->ed;
-  if (!ed) {
-    ed = create_editor(env);
-    new_file(ed, "");
-  }
   ed->refresh = 1;
 }
 
@@ -1930,6 +1881,9 @@ void edit(struct editor *ed) {
         case ctrl('l'): goto_line(ed, 0); break;
         case ctrl('g'): goto_anything(ed, 0); break;
         case ctrl('q'): done = 1; break;
+        case ctrl('w'): done = 1; break;
+        case ctrl('o'): done = 1; break;
+        case ctrl('n'): done = 1; break;
 #ifdef LESS
         case KEY_ESC: done = 1; break;
 #else
@@ -1943,12 +1897,9 @@ void edit(struct editor *ed) {
         case ctrl('z'): undo(ed); break;
         case ctrl('r'): redo(ed); break;
         case ctrl('v'): paste_selection(ed); break;
-        case ctrl('o'): open_editor(ed); ed = ed->env->ed; break;
-        case ctrl('n'): new_editor(ed); ed = ed->env->ed; break;
         case ctrl('s'): save_editor(ed); break;
         case ctrl('p'): pipe_command(ed); break;
 #endif
-        case ctrl('w'): close_editor(ed); ed = ed->env->ed; break;
       }
     }
   }
