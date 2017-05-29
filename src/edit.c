@@ -1922,51 +1922,50 @@ int main(int argc, char *argv[]) {
 
   memset(&env, 0, sizeof(env));
 	
-  filename = argv[1];
-	
-  struct editor *ed = create_editor(&env);
-  query = 0;
-  
-  rc = load_file(ed, filename);
-  if (rc < 0 && errno == ENOENT) {
-    i = filename;
+  env.ed = create_editor(&env);
+
+  if (argc == 2) {
+    filename = argv[1];
     
-    // Find last occurrence of query operator
-    while (*i) { 
-      if (*i == ':' || *query == '#') query = i;
-      i += 1;
-    }
-  
-    if (query) {
-      query_op = query[0];
-      query[0] = 0x00; // terminate filename at the query operator
-    }
-
-    rc = load_file(ed, filename);
+    query = 0;
+    
+    rc = load_file(env.ed, filename);
     if (rc < 0 && errno == ENOENT) {
-      rc = new_file(ed, filename);
+      i = filename;
+      
+      // Find last occurrence of query operator
+      while (*i) { 
+        if (*i == ':' || *query == '#') query = i;
+        i += 1;
+      }
+    
+      if (query) {
+        query_op = query[0];
+        query[0] = 0x00; // terminate filename at the query operator
+      }
+
+      rc = load_file(env.ed, filename);
+      if (rc < 0 && errno == ENOENT) {
+        rc = new_file(env.ed, filename);
+      }
     }
-  }
 
-  if (query) {
-    query[0] = query_op; // put this back since we removed it terminate the filename
-    goto_anything(ed, query);
-  }
+    if (query) {
+      query[0] = query_op; // put this back since we removed it terminate the filename
+      goto_anything(env.ed, query);
+    }
 
-  if (rc < 0) { 
-    perror(filename);
-    return 0;
-  }
-
-  if (env.ed == NULL) {
-    struct editor *ed = create_editor(&env);
+    if (rc < 0) { 
+      perror(filename);
+      return 0;
+    }
+  } else {
     if (isatty(fileno(stdin))) {
-      new_file(ed, "");
+      new_file(env.ed, "");
     } else {
-      read_from_stdin(ed);
+      read_from_stdin(env.ed);
     }    
   }
-  env.ed = ed;
 
   if (!isatty(fileno(stdin))) {
     if (!freopen("/dev/tty", "r", stdin)) perror("/dev/tty");
