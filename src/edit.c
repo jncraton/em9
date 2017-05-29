@@ -20,6 +20,10 @@ int linux_console = 0;
 #define TABSIZE        8
 #endif
 
+#ifndef PAGESIZE
+#define PAGESIZE        20
+#endif
+
 #ifndef INDENT
 #define INDENT "  "
 #endif
@@ -1281,48 +1285,11 @@ void bottom(struct editor *ed, int select) {
 }
 
 void pageup(struct editor *ed, int select) {
-  int i;
-
-  update_selection(ed, select);
-  if (ed->line < ed->env->lines) {
-    ed->linepos = ed->toppos = 0;
-    ed->line = ed->topline = 0;
-  } else {
-    for (i = 0; i < ed->env->lines; i++) {
-      int newpos = prev_line(ed, ed->linepos);
-      if (newpos < 0) return;
-
-      ed->linepos = newpos;
-      ed->line--;
-
-      if (ed->topline > 0) {
-        ed->toppos = prev_line(ed, ed->toppos);
-        ed->topline--;
-      }
-    }
-  }
-
-  ed->refresh = 1;
-  adjust(ed);
+  for (int i = 0; i < PAGESIZE; i++) up(ed, select);
 }
 
 void pagedown(struct editor *ed, int select) {
-  int i;
-
-  update_selection(ed, select);
-  for (i = 0; i < ed->env->lines; i++) {
-    int newpos = next_line(ed, ed->linepos);
-    if (newpos < 0) break;
-
-    ed->linepos = newpos;
-    ed->line++;
-
-    ed->toppos = next_line(ed, ed->toppos);
-    ed->topline++;
-  }
-
-  ed->refresh = 1;
-  adjust(ed);
+  for (int i = 0; i < PAGESIZE; i++) down(ed, select);
 }
 
 //
