@@ -419,29 +419,18 @@ int line_start(struct editor *ed, int pos) {
   return pos;
 }
 
-int next_line(struct editor *ed, int pos) {
-  while (1) {
-    int ch = get(ed, pos);
-    if (ch < 0) return -1;
-    pos++;
-    if (ch == '\n') return pos;
-  }
-}
+int next_line(struct editor *ed, int pos, int dir) {
+  pos = line_start(ed, pos);
+	
+  if (dir > 0) pos += line_length(ed, pos);
+  
+  pos += dir;
 
-int prev_line(struct editor *ed, int pos) {
-  if (pos == 0) return -1;
-
-  while (pos > 0) {
-    int ch = get(ed, --pos);
-    if (ch == '\n') break;
-  }
-
-  while (pos > 0) {
-    int ch = get(ed, --pos);
-    if (ch == '\n') return pos + 1;
-  }
-
-  return 0;
+  if (pos < 0) return -1;
+  int ch = get(ed, pos);
+  if (ch < 0) return -1;
+  
+  return line_start(ed, pos);
 }
 
 int column(struct editor *ed, int linepos, int col) {
@@ -470,7 +459,7 @@ void moveto(struct editor *ed, int pos, int center) {
         ed->col = pos - ed->linepos;
       } else {
         ed->col = 0;
-        ed->linepos = prev_line(ed, ed->linepos);
+        ed->linepos = next_line(ed, ed->linepos, -1);
         ed->line--;
 
         if (ed->topline > ed->line) {
@@ -481,7 +470,7 @@ void moveto(struct editor *ed, int pos, int center) {
         }
       }
     } else if (pos > cur) {
-      int next = next_line(ed, ed->linepos);
+      int next = next_line(ed, ed->linepos, 1);
       if (next == -1) {
         ed->col = line_length(ed, ed->linepos);
         break;
@@ -493,7 +482,7 @@ void moveto(struct editor *ed, int pos, int center) {
         ed->line++;
 
         if (ed->line >= ed->topline + ed->env->lines) {
-          ed->toppos = next_line(ed, ed->toppos);
+          ed->toppos = next_line(ed, ed->toppos, 1);
           ed->topline++;
           ed->refresh = 1;
           scroll = 1;
@@ -509,10 +498,10 @@ void moveto(struct editor *ed, int pos, int center) {
     if (tl < 0) tl = 0;
     for (;;) {
       if (ed->topline > tl) {
-        ed->toppos = prev_line(ed, ed->toppos);
+        ed->toppos = next_line(ed, ed->toppos, -1);
         ed->topline--;
       } else if (ed->topline < tl) {
-        ed->toppos = next_line(ed, ed->toppos);
+        ed->toppos = next_line(ed, ed->toppos, 1);
         ed->topline++;
       } else {
         break;
@@ -548,7 +537,7 @@ int get_selection(struct editor *ed, int *start, int *end) {
 void get_selection_or_line(struct editor *ed, int *start, int *end) {
   if (!get_selection(ed, start, end)) {
     *start = ed->linepos;
-    *end = next_line(ed, ed->linepos);
+    *end = next_line(ed, ed->linepos, 1);
   }
 }
 
@@ -587,7 +576,7 @@ int erase_selection(struct editor *ed) {
 void erase_selection_or_line(struct editor *ed) {
   if (!erase_selection(ed)) {
     moveto(ed, ed->linepos, 0);
-    erase(ed, ed->linepos, next_line(ed, ed->linepos) - ed->linepos);
+    erase(ed, ed->linepos, next_line(ed, ed->linepos, 1) - ed->linepos);
     ed->anchor = -1;
     ed->refresh = 1;
   }
@@ -650,7 +639,7 @@ void get_modifier_keys(int *shift, int *ctrl) {
   }
 }
 
-enum key_codes getkey() {
+enum key_codes get_key() {
   int ch, shift, ctrl;
 
   ch = getchar();
@@ -838,7 +827,7 @@ int prompt(struct editor *ed, char *msg, int selection) {
 
   for (;;) {
     fflush(stdout);
-    ch = getkey();
+    ch = get_key();
     if (ch == KEY_ESC) {
       return 0;
     } else if (ch == KEY_ENTER) {
@@ -983,7 +972,7 @@ void draw_screen(struct editor *ed) {
       outstr(CLREOL "\r\n");
     } else {
       display_line(ed, pos, 1);
-      pos = next_line(ed, pos);
+      pos = next_line(ed, pos, 1);
     }
   }
 }
@@ -1006,8 +995,8 @@ void adjust(struct editor *ed) {
     ed->refresh = 1;
   }
 
-  if (ed->line >= ed->topline + ed->env->lines) {
-    ed->toppos = next_line(ed, ed->toppos);
+  while (ed->line >= ed->topline + ed->env->lines) {
+    ed->toppos = next_line(ed, ed->toppos, 1);
     ed->topline++;
     ed->refresh = 1;
   }
@@ -1034,7 +1023,7 @@ void up(struct editor *ed, int select) {
   
   update_selection(ed, select);
 
-  newpos = prev_line(ed, ed->linepos);
+  newpos = next_line(ed, ed->linepos, -1);
   if (newpos < 0) return;
 
   ed->linepos = newpos;
@@ -1048,7 +1037,7 @@ void down(struct editor *ed, int select) {
   
   update_selection(ed, select);
 
-  newpos = next_line(ed, ed->linepos);
+  newpos = next_line(ed, ed->linepos, 1);
   if (newpos < 0) return;
 
   ed->linepos = newpos;
@@ -1062,7 +1051,7 @@ void left(struct editor *ed, int select) {
   if (ed->col > 0) {
     ed->col--;
   } else {
-    int newpos = prev_line(ed, ed->linepos);
+    int newpos = next_line(ed, ed->linepos, -1);
     if (newpos < 0) return;
 
     ed->col = line_length(ed, newpos);
@@ -1079,7 +1068,7 @@ void right(struct editor *ed, int select) {
   if (ed->col < line_length(ed, ed->linepos)) {
     ed->col++;
   } else {
-    int newpos = next_line(ed, ed->linepos);
+    int newpos = next_line(ed, ed->linepos, 1);
     if (newpos < 0) return;
 
     ed->col = 0;
@@ -1111,7 +1100,7 @@ void wordleft(struct editor *ed, int select) {
 
     pos--;
     if (pos < ed->linepos) {
-      ed->linepos = prev_line(ed, ed->linepos);
+      ed->linepos = next_line(ed, ed->linepos, -1);
       ed->line--;
       ed->refresh = 1;
     }
@@ -1127,7 +1116,7 @@ void wordright(struct editor *ed, int select) {
   update_selection(ed, select);
   pos = ed->linepos + ed->col;
   end = text_length(ed);
-  next = next_line(ed, ed->linepos);
+  next = next_line(ed, ed->linepos, 1);
   phase = 0;
   while (pos < end) {
     int ch = get(ed, pos);
@@ -1140,7 +1129,7 @@ void wordright(struct editor *ed, int select) {
     pos++;
     if (pos == next) {
       ed->linepos = next;
-      next = next_line(ed, ed->linepos);
+      next = next_line(ed, ed->linepos, 1);
       ed->line++;
       ed->refresh = 1;
     }
@@ -1172,7 +1161,7 @@ void top(struct editor *ed, int select) {
 void bottom(struct editor *ed, int select) {
   update_selection(ed, select);
   for (;;) {
-    int newpos = next_line(ed, ed->linepos);
+    int newpos = next_line(ed, ed->linepos, 1);
     if (newpos < 0) break;
 
     ed->linepos = newpos;
@@ -1216,7 +1205,7 @@ void newline(struct editor *ed) {
   ed->col = ed->lastcol = 0;
   ed->line++;
   p = ed->linepos;
-  ed->linepos = next_line(ed, ed->linepos);
+  ed->linepos = next_line(ed, ed->linepos, 1);
   for (;;) {
     ch = get(ed, p++);
     if (ch == ' ' || ch == '\t') {
@@ -1231,38 +1220,11 @@ void newline(struct editor *ed) {
   ed->refresh = 1;
 
   if (ed->line >= ed->topline + ed->env->lines) {
-    ed->toppos = next_line(ed, ed->toppos);
+    ed->toppos = next_line(ed, ed->toppos, 1);
     ed->topline++;
     ed->refresh = 1;
   }
 
-  adjust(ed);
-}
-
-void backspace(struct editor *ed) {
-  if (erase_selection(ed)) return;
-  if (ed->linepos + ed->col == 0) return;
-  if (ed->col == 0) {
-    int pos = ed->linepos;
-    erase(ed, --pos, 1);
-    if (get(ed, pos - 1) == '\r') erase(ed, --pos, 1);
-
-    ed->line--;
-    ed->linepos = line_start(ed, pos);
-    ed->col = pos - ed->linepos;
-    ed->refresh = 1;
-
-    if (ed->line < ed->topline) {
-      ed->toppos = ed->linepos;
-      ed->topline = ed->line;
-    }
-  } else {
-    ed->col--;
-    erase(ed, ed->linepos + ed->col, 1);
-    ed->lineupdate = 1;
-  }
-
-  ed->lastcol = ed->col;
   adjust(ed);
 }
 
@@ -1285,6 +1247,13 @@ void del(struct editor *ed) {
   } else {
     ed->lineupdate = 1;
   }
+}
+
+void backspace(struct editor *ed) {
+  if (erase_selection(ed)) return;
+  if (ed->linepos + ed->col == 0) return;
+  left(ed, 0);
+  del(ed);
 }
 
 void indent(struct editor *ed, unsigned char *indentation) {
@@ -1601,7 +1570,7 @@ void goto_line(struct editor *ed, int lineno) {
   if (lineno > 0) {
     pos = 0;
     for (l = 0; l < lineno - 1; l++) {
-      pos = next_line(ed, pos);
+      pos = next_line(ed, pos, 1);
       if (pos < 0) break;
     }
   } else {
@@ -1666,7 +1635,7 @@ void edit(struct editor *ed) {
 
     position_cursor(ed);
     fflush(stdout);
-    key = getkey();
+    key = get_key();
 
     if (key >= ' ' && key <= 0x7F) {
 #ifdef LESS
