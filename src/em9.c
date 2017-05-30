@@ -45,7 +45,7 @@ enum key_codes {KEY_BACKSPACE = 0x108, KEY_ESC,KEY_INS, KEY_DEL, KEY_LEFT,
   KEY_SHIFT_PGUP, KEY_SHIFT_PGDN, KEY_SHIFT_HOME, KEY_SHIFT_END, 
   KEY_SHIFT_TAB, KEY_SHIFT_CTRL_LEFT, KEY_SHIFT_CTRL_RIGHT, 
   KEY_SHIFT_CTRL_UP, KEY_SHIFT_CTRL_DOWN, KEY_SHIFT_CTRL_HOME,
-  KEY_SHIFT_CTRL_END, KEY_F1, KEY_F3, KEY_F5,KEY_UNKNOWN};
+  KEY_SHIFT_CTRL_END, KEY_F3, KEY_UNKNOWN};
 
 #define ctrl(c) ((c) - 0x60)
 
@@ -674,9 +674,7 @@ enum key_codes getkey() {
           switch (ch) {
             case 0x46: return KEY_END;
             case 0x48: return KEY_HOME;
-            case 0x50: return KEY_F1;
             case 0x52: return KEY_F3;
-            case 0x54: return KEY_F5;
             default: return KEY_UNKNOWN;
           }
           break;
@@ -694,8 +692,6 @@ enum key_codes getkey() {
                 if (ch == 0x36) shift = ctrl = 1;
                 ch = getchar();
                 break;
-              case 0x35: 
-                return getchar() == 0x7E ? KEY_F5 : KEY_UNKNOWN;
               case 0x7E:
                 if (shift && ctrl) return KEY_SHIFT_CTRL_HOME;
                 if (shift) return KEY_SHIFT_HOME;
@@ -764,9 +760,7 @@ enum key_codes getkey() {
             case 0x5B:
               ch = getchar();
               switch (ch) {
-                case 0x41: return KEY_F1;
                 case 0x43: return KEY_F3;
-                case 0x45: return KEY_F5;
               }
               return KEY_UNKNOWN;
 
@@ -783,9 +777,7 @@ enum key_codes getkey() {
       ch = getchar();
       switch (ch) {
         case 0x0F: return KEY_SHIFT_TAB;
-        case 0x3B: return KEY_F1;
         case 0x3D: return KEY_F3;
-        case 0x3F: return KEY_F5;
         case 0x47: return KEY_HOME;
         case 0x48: return KEY_UP;
         case 0x49: return KEY_PGUP;
@@ -1721,6 +1713,7 @@ void edit(struct editor *ed) {
         case ctrl('a'): select_all(ed); break;
         case ctrl('d'): duplicate_selection_or_line(ed); break;
         case ctrl('c'): copy_selection_or_line(ed); break;
+        case KEY_F3: find_text(ed, 0); break;
         case ctrl('f'): find_text(ed, 0); break;
         case ctrl('l'): goto_line(ed, 0); break;
         case ctrl('g'): goto_anything(ed, 0); break;
