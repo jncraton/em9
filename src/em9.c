@@ -1825,10 +1825,7 @@ void edit(struct editor *ed) {
 int main(int argc, char *argv[]) {
   struct env env;
   int rc;
-  char* filename;
-  char* i;
-  char* query; // optional line in file e.g. edit.c:20 for line 20 in this file
-  char query_op;
+  char *filename, *query, query_op, *i;
   sigset_t blocked_sigmask, orig_sigmask;
   struct termios tio;
   struct termios orig_tio;
