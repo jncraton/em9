@@ -14,3 +14,23 @@ My goal is for em9 to be able edit a text file effectively. Sticking with the si
 - Not be capable of running shell commands
 - Only be able to edit one file at a time
 - Not support plugins. The source code is short and simple, so you can add any features that matter to you. If a feature is small and you believe it would be useful to most users, feel free to send a pull request.
+
+# How Do I...
+
+em9 is designed to force you to use native operating system and shell features in place of embedding these features in the editor itself. Here are some example operations.
+
+## Appending content from a shell command
+
+Don't use em9 at all. Use `command >> file`.
+
+## Inserting content from a shell command
+
+1. Use `command | xsel` to get the output in the clipboard.
+2. Open the file with em9 and paste away.
+
+## Finding a file in a project
+
+Don't use em9 at all. It is a text editor, not an IDE or project management tool. You could use:
+
+- `find . -iname {filename}`
+- `git grep {text}` 
