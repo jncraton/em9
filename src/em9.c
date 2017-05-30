@@ -1525,9 +1525,27 @@ void cut_selection_or_line(struct editor *ed) {
 }
 
 void paste_selection(struct editor *ed) {
+  FILE * f;
+  char buffer[512];
+  int n;
+  int pos;
+
   erase_selection(ed);
-  insert(ed, ed->linepos + ed->col, ed->env->clipboard, ed->env->clipsize);
-  moveto(ed, ed->linepos + ed->col + ed->env->clipsize, 0);
+
+  f = popen("xsel", "r");
+  if (f) {
+    pos = ed->linepos + ed->col;
+    while ((n = fread(buffer, 1, sizeof(buffer), f)) > 0) {
+      insert(ed, pos, buffer, n);
+      pos += n;
+    }
+    moveto(ed, pos, 0);
+    pclose(f);
+  } else {
+    insert(ed, ed->linepos + ed->col, ed->env->clipboard, ed->env->clipsize);
+    moveto(ed, ed->linepos + ed->col + ed->env->clipsize, 0);
+  }
+
   ed->refresh = 1;
 }
 
