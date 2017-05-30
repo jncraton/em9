@@ -1509,14 +1509,30 @@ void redo(struct editor *ed) {
 //
 
 void copy_selection_or_line(struct editor *ed) {
-  int selstart, selend;
+  FILE *f_pri, *f_sec, *f_clip;
+  
+  int selstart, selend, pos;
 
   get_selection_or_line(ed, &selstart, &selend);
   
-  ed->env->clipsize = selend - selstart;
-  ed->env->clipboard = (unsigned char *) realloc(ed->env->clipboard, ed->env->clipsize);
-  if (!ed->env->clipboard) return;
-  copy(ed, ed->env->clipboard, selstart, ed->env->clipsize);
+  f_pri = popen("xsel", "w");
+  f_sec = popen("xsel --secondary", "w");
+  f_clip = popen("xsel --clipboard", "w");
+  if (f_pri) {
+    for (pos = selstart; pos < selend; pos++) {
+      fprintf(f_pri, "%c", *text_ptr(ed, pos));
+      if (f_sec) fprintf(f_sec, "%c", *text_ptr(ed, pos));
+      if (f_clip) fprintf(f_clip, "%c", *text_ptr(ed, pos));
+    }
+    pclose(f_pri);
+    if (f_sec) pclose(f_sec);
+    if (f_clip) pclose(f_clip);
+  } else {  
+    ed->env->clipsize = selend - selstart;
+    ed->env->clipboard = (unsigned char *) realloc(ed->env->clipboard, ed->env->clipsize);
+    if (!ed->env->clipboard) return;
+    copy(ed, ed->env->clipboard, selstart, ed->env->clipsize);
+  }
 }
 
 void cut_selection_or_line(struct editor *ed) {
