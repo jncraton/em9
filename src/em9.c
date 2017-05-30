@@ -420,28 +420,17 @@ int line_start(struct editor *ed, int pos) {
 }
 
 int next_line(struct editor *ed, int pos, int dir) {
-  if (dir > 0) {
-    while (1) {
-      int ch = get(ed, pos);
-      if (ch < 0) return -1;
-      pos++;
-      if (ch == '\n') return pos;
-    }
-  } else {
-    if (pos == 0) return -1;
+  pos = line_start(ed, pos);
+	
+  if (dir > 0) pos += line_length(ed, pos);
+  
+  pos += dir;
 
-    while (pos > 0) {
-      int ch = get(ed, --pos);
-      if (ch == '\n') break;
-    }
-
-    while (pos > 0) {
-      int ch = get(ed, --pos);
-      if (ch == '\n') return pos + 1;
-    }
-
-    return 0;
-  }
+  if (pos < 0) return -1;
+  int ch = get(ed, pos);
+  if (ch < 0) return -1;
+  
+  return line_start(ed, pos);
 }
 
 int column(struct editor *ed, int linepos, int col) {
@@ -1006,7 +995,7 @@ void adjust(struct editor *ed) {
     ed->refresh = 1;
   }
 
-  if (ed->line >= ed->topline + ed->env->lines) {
+  while (ed->line >= ed->topline + ed->env->lines) {
     ed->toppos = next_line(ed, ed->toppos, 1);
     ed->topline++;
     ed->refresh = 1;
