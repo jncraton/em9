@@ -650,7 +650,7 @@ void get_modifier_keys(int *shift, int *ctrl) {
   }
 }
 
-enum key_codes getkey() {
+enum key_codes get_key() {
   int ch, shift, ctrl;
 
   ch = getchar();
@@ -838,7 +838,7 @@ int prompt(struct editor *ed, char *msg, int selection) {
 
   for (;;) {
     fflush(stdout);
-    ch = getkey();
+    ch = get_key();
     if (ch == KEY_ESC) {
       return 0;
     } else if (ch == KEY_ENTER) {
@@ -1646,7 +1646,7 @@ void edit(struct editor *ed) {
 
     position_cursor(ed);
     fflush(stdout);
-    key = getkey();
+    key = get_key();
 
     if (key >= ' ' && key <= 0x7F) {
 #ifdef LESS
