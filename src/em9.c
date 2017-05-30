@@ -1239,33 +1239,6 @@ void newline(struct editor *ed) {
   adjust(ed);
 }
 
-void backspace(struct editor *ed) {
-  if (erase_selection(ed)) return;
-  if (ed->linepos + ed->col == 0) return;
-  if (ed->col == 0) {
-    int pos = ed->linepos;
-    erase(ed, --pos, 1);
-    if (get(ed, pos - 1) == '\r') erase(ed, --pos, 1);
-
-    ed->line--;
-    ed->linepos = line_start(ed, pos);
-    ed->col = pos - ed->linepos;
-    ed->refresh = 1;
-
-    if (ed->line < ed->topline) {
-      ed->toppos = ed->linepos;
-      ed->topline = ed->line;
-    }
-  } else {
-    ed->col--;
-    erase(ed, ed->linepos + ed->col, 1);
-    ed->lineupdate = 1;
-  }
-
-  ed->lastcol = ed->col;
-  adjust(ed);
-}
-
 void del(struct editor *ed) {
   int pos, ch;
   
@@ -1285,6 +1258,13 @@ void del(struct editor *ed) {
   } else {
     ed->lineupdate = 1;
   }
+}
+
+void backspace(struct editor *ed) {
+  if (erase_selection(ed)) return;
+  if (ed->linepos + ed->col == 0) return;
+  left(ed, 0);
+  del(ed);
 }
 
 void indent(struct editor *ed, unsigned char *indentation) {
