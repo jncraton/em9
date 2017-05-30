@@ -1151,26 +1151,6 @@ void end(struct editor *ed, int select) {
   adjust(ed);
 }
 
-void top(struct editor *ed, int select) {
-  update_selection(ed, select);
-  ed->toppos = ed->topline = ed->margin = 0;
-  ed->linepos = ed->line = ed->col = ed->lastcol = 0;
-  ed->refresh = 1;
-}
-
-void bottom(struct editor *ed, int select) {
-  update_selection(ed, select);
-  for (;;) {
-    int newpos = next_line(ed, ed->linepos, 1);
-    if (newpos < 0) break;
-
-    ed->linepos = newpos;
-    ed->line++;
-  }
-  ed->col = ed->lastcol = line_length(ed, ed->linepos);
-  adjust(ed);
-}
-
 void pageup(struct editor *ed, int select) {
   int i;
 
@@ -1567,15 +1547,12 @@ void goto_line(struct editor *ed, int lineno) {
   if (!lineno && prompt(ed, "Goto line: ", 1)) {
     lineno = atoi(ed->env->linebuf);
   }
-  if (lineno > 0) {
-    pos = 0;
-    for (l = 0; l < lineno - 1; l++) {
-      new_pos = next_line(ed, pos, 1);
-      if (new_pos < 0) break;
-      pos = new_pos;
-    }
-  } else {
-    pos = -1;
+
+  pos = 0;
+  for (l = 0; l < lineno - 1 || lineno < 0; l++) {
+    new_pos = next_line(ed, pos, 1);
+    if (new_pos < 0) break;
+    pos = new_pos;
   }
 
   if (pos >= 0) {
@@ -1649,8 +1626,8 @@ void edit(struct editor *ed) {
 #endif
     } else {
       switch (key) {
-        case ctrl('t'): top(ed, 0); break;
-        case ctrl('b'): bottom(ed, 0); break;
+        case ctrl('t'): goto_line(ed, 1); break;
+        case ctrl('b'): goto_line(ed, -1); break;
 
         case KEY_UP: up(ed, 0); break;
         case KEY_DOWN: down(ed, 0); break;
@@ -1663,8 +1640,8 @@ void edit(struct editor *ed) {
 
         case ctrl(KEY_RIGHT): wordright(ed, 0); break;
         case ctrl(KEY_LEFT): wordleft(ed, 0); break;
-        case KEY_CTRL_HOME: top(ed, 0); break;
-        case KEY_CTRL_END: bottom(ed, 0); break;
+        case KEY_CTRL_HOME: goto_line(ed, 1); break;
+        case KEY_CTRL_END: goto_line(ed, -1); break;
 
         case KEY_SHIFT_UP: up(ed, 1); break;
         case KEY_SHIFT_DOWN: down(ed, 1); break;
@@ -1677,8 +1654,8 @@ void edit(struct editor *ed) {
 
         case KEY_SHIFT_CTRL_RIGHT: wordright(ed, 1); break;
         case KEY_SHIFT_CTRL_LEFT: wordleft(ed, 1); break;
-        case KEY_SHIFT_CTRL_HOME: top(ed, 1); break;
-        case KEY_SHIFT_CTRL_END: bottom(ed, 1); break;
+        case KEY_SHIFT_CTRL_HOME: goto_line(ed, 1); break;
+        case KEY_SHIFT_CTRL_END: goto_line(ed, -1); break;
 
         case ctrl('a'): select_all(ed); break;
         case ctrl('d'): duplicate_selection_or_line(ed); break;
