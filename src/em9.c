@@ -223,9 +223,6 @@ int load_file(struct editor *ed, char *filename) {
 
   ed->start = (unsigned char *) malloc(length + MINEXTEND);
   if (!ed->start) goto err;
-#ifdef DEBUG
-  memset(ed->start, 0, length + MINEXTEND);
-#endif
   if (read(f, ed->start, length) != length) goto err;
 
   ed->gap = ed->start + length;
@@ -318,10 +315,6 @@ void move_gap(struct editor *ed, int pos, int minsize) {
     ed->rest = rest;
     ed->end = end;
   }
-
-#ifdef DEBUG
-  memset(ed->gap, 0, ed->rest - ed->gap);
-#endif
 }
 
 void close_gap(struct editor *ed) {
