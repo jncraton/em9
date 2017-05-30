@@ -14,6 +14,7 @@ release: src/em9.c
 	strip --strip-all em9
 	rm -f em9.xz
 	xz -9e em9
+	du -b em9.xz
 			
 clean:
 	rm em9*
