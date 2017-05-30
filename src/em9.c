@@ -1053,8 +1053,21 @@ void position_cursor(struct editor *ed) {
 //
 
 void adjust(struct editor *ed) {
-  int col;
-  int ll = line_length(ed, ed->linepos);
+  int col, ll;
+
+  if (ed->line < ed->topline) {
+    ed->toppos = ed->linepos;
+    ed->topline = ed->line;
+    ed->refresh = 1;
+  }
+
+  if (ed->line >= ed->topline + ed->env->lines) {
+    ed->toppos = next_line(ed, ed->toppos);
+    ed->topline++;
+    ed->refresh = 1;
+  }
+
+  ll = line_length(ed, ed->linepos);
   ed->col = ed->lastcol;
   if (ed->col > ll) ed->col = ll;
 
@@ -1081,11 +1094,6 @@ void up(struct editor *ed, int select) {
 
   ed->linepos = newpos;
   ed->line--;
-  if (ed->line < ed->topline) {
-    ed->toppos = ed->linepos;
-    ed->topline = ed->line;
-    ed->refresh = 1;
-  }
 
   adjust(ed);
 }
@@ -1101,12 +1109,6 @@ void down(struct editor *ed, int select) {
   ed->linepos = newpos;
   ed->line++;
 
-  if (ed->line >= ed->topline + ed->env->lines) {
-    ed->toppos = next_line(ed, ed->toppos);
-    ed->topline++;
-    ed->refresh = 1;
-  }
-
   adjust(ed);
 }
 
@@ -1121,11 +1123,6 @@ void left(struct editor *ed, int select) {
     ed->col = line_length(ed, newpos);
     ed->linepos = newpos;
     ed->line--;
-    if (ed->line < ed->topline) {
-      ed->toppos = ed->linepos;
-      ed->topline = ed->line;
-      ed->refresh = 1;
-    }
   }
 
   ed->lastcol = ed->col;
@@ -1143,12 +1140,6 @@ void right(struct editor *ed, int select) {
     ed->col = 0;
     ed->linepos = newpos;
     ed->line++;
-
-    if (ed->line >= ed->topline + ed->env->lines) {
-      ed->toppos = next_line(ed, ed->toppos);
-      ed->topline++;
-      ed->refresh = 1;
-    }
   }
 
   ed->lastcol = ed->col;
@@ -1181,11 +1172,6 @@ void wordleft(struct editor *ed, int select) {
     }
   }
   ed->col = pos - ed->linepos;
-  if (ed->line < ed->topline) {
-    ed->toppos = ed->linepos;
-    ed->topline = ed->line;
-  }
-
   ed->lastcol = ed->col;
   adjust(ed);
 }
@@ -1215,11 +1201,6 @@ void wordright(struct editor *ed, int select) {
     }
   }
   ed->col = pos - ed->linepos;
-  if (ed->line >= ed->topline + ed->env->lines) {
-    ed->toppos = next_line(ed, ed->toppos);
-    ed->topline++;
-  }
-
   ed->lastcol = ed->col;
   adjust(ed);
 }
@@ -1251,12 +1232,6 @@ void bottom(struct editor *ed, int select) {
 
     ed->linepos = newpos;
     ed->line++;
-
-    if (ed->line >= ed->topline + ed->env->lines) {
-      ed->toppos = next_line(ed, ed->toppos);
-      ed->topline++;
-      ed->refresh = 1;
-    }
   }
   ed->col = ed->lastcol = line_length(ed, ed->linepos);
   adjust(ed);
