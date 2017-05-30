@@ -1696,15 +1696,9 @@ void goto_anything(struct editor *ed, char *query) {
     query = ed->env->linebuf;
   }
 
-  if (query[0] == ':') {
-    goto_line(ed, atoi(query + 1));
-  }
-  if (query[0] == '#') {
-    find_text(ed, query + 1);
-  }
-  if (query[0] == '@') {
-    find_text(ed, query + 1);
-  }
+  if (query[0] == ':') { goto_line(ed, atoi(query + 1)); }
+  if (query[0] == '#') { find_text(ed, query + 1); }
+  if (query[0] == '@') { find_text(ed, query + 1); }
 }
 
 void redraw_screen(struct editor *ed) {
