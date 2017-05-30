@@ -1825,7 +1825,6 @@ void edit(struct editor *ed) {
 int main(int argc, char *argv[]) {
   struct env env;
   int rc;
-  char *filename, *query, query_op, *i;
   sigset_t blocked_sigmask, orig_sigmask;
   struct termios tio;
   struct termios orig_tio;
@@ -1834,32 +1833,10 @@ int main(int argc, char *argv[]) {
 	
   env.ed = create_editor(&env);
 
-  if (argc == 2) {
-    filename = argv[1];
-    query = 0;
-    
-    if (load_file(env.ed, filename) < 0) {
-      i = filename;
-      
-      // Find last occurrence of query operator
-      while (*i) { 
-        if (*i == ':' || *i == '#') query = i;
-        i += 1;
-      }
-    
-      if (query) {
-        query_op = query[0];
-        query[0] = 0x00; // terminate filename at the query operator
-      }
-
-      if (load_file(env.ed, filename) < 0) {
-        perror(filename);
-      	return 0;
-      }
-      if (query) {
-        query[0] = query_op; // put this back since we removed it terminate the filename
-        goto_anything(env.ed, query);
-      }
+  if (argc >= 2) {
+    if (load_file(env.ed, argv[1]) < 0) {
+      perror(argv[1]);
+      return 0;
     }
   } else {
     if (isatty(fileno(stdin))) {
@@ -1872,6 +1849,8 @@ int main(int argc, char *argv[]) {
   if (!isatty(fileno(stdin))) {
     if (!freopen("/dev/tty", "r", stdin)) perror("/dev/tty");
   }
+
+  if (argc >= 3) goto_anything(env.ed, argv[2]);
 
   setvbuf(stdout, NULL, 0, 8192);
 
