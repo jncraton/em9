@@ -601,10 +601,6 @@ void get_console_size(struct env *env) {
   env->linebuf = realloc(env->linebuf, env->cols + LINEBUF_EXTRA);
 }
 
-void outch(char c) {
-  putchar(c);
-}
-
 void outbuf(unsigned char *buf, int len) {
   fwrite(buf, 1, len, stdout);
 }
@@ -839,7 +835,7 @@ int prompt(struct editor *ed, char *msg, int selection) {
         len--;
       }
     } else if (ch >= ' ' && ch < 0x100 && len < maxlen) {
-      outch(ch);
+      putchar(ch);
       buf[len++] = ch;
     }
   }
@@ -1533,7 +1529,7 @@ void find_text(struct editor *ed, char* search) {
       ed->anchor = pos;
       moveto(ed, pos + slen, 1);
     } else {
-      outch('\007');
+      putchar('\007');
     }
   }
   ed->refresh = 1;
@@ -1558,7 +1554,7 @@ void goto_line(struct editor *ed, int lineno) {
   if (pos >= 0) {
     moveto(ed, pos, 1);
   } else {
-    outch('\007');
+    putchar('\007');
   }
   ed->refresh = 1;
 }
