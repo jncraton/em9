@@ -39,7 +39,7 @@ int linux_console = 0;
 
 enum key_codes {KEY_BACKSPACE = 0x108, KEY_ESC,KEY_INS, KEY_DEL, KEY_LEFT, 
   KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_HOME, KEY_END, KEY_ENTER, KEY_TAB,
-  KEY_PGUP, KEY_PGDN, KEY_CTRL_LEFT, KEY_CTRL_RIGHT, KEY_CTRL_UP,
+  KEY_PGUP, KEY_PGDN, KEY_CTRL_UP,
   KEY_CTRL_DOWN, KEY_CTRL_HOME, KEY_CTRL_END, KEY_CTRL_TAB,
   KEY_SHIFT_LEFT, KEY_SHIFT_RIGHT, KEY_SHIFT_UP, KEY_SHIFT_DOWN,
   KEY_SHIFT_PGUP, KEY_SHIFT_PGDN, KEY_SHIFT_HOME, KEY_SHIFT_END, 
@@ -738,12 +738,12 @@ enum key_codes getkey() {
             case 0x43: 
               if (shift && ctrl) return KEY_SHIFT_CTRL_RIGHT;
               if (shift) return KEY_SHIFT_RIGHT;
-              if (ctrl) return KEY_CTRL_RIGHT;
+              if (ctrl) return ctrl(KEY_RIGHT);
               return KEY_RIGHT;
             case 0x44:
               if (shift && ctrl) return KEY_SHIFT_CTRL_LEFT;
               if (shift) return KEY_SHIFT_LEFT;
-              if (ctrl) return KEY_CTRL_LEFT;
+              if (ctrl) return ctrl(KEY_LEFT);
               return KEY_LEFT;
             case 0x46:
               if (shift && ctrl) return KEY_SHIFT_CTRL_END;
@@ -788,8 +788,8 @@ enum key_codes getkey() {
         case 0x51: return KEY_PGDN;
         case 0x52: return KEY_INS;
         case 0x53: return KEY_DEL;
-        case 0x73: return KEY_CTRL_LEFT;
-        case 0x74: return KEY_CTRL_RIGHT;
+        case 0x73: return ctrl(KEY_LEFT);
+        case 0x74: return ctrl(KEY_RIGHT);
         case 0x75: return KEY_CTRL_END;
         case 0x77: return KEY_CTRL_HOME;
         case 0x8D: return KEY_CTRL_UP;
@@ -1691,8 +1691,8 @@ void edit(struct editor *ed) {
         case KEY_PGUP: pageup(ed, 0); break;
         case KEY_PGDN: pagedown(ed, 0); break;
 
-        case KEY_CTRL_RIGHT: wordright(ed, 0); break;
-        case KEY_CTRL_LEFT: wordleft(ed, 0); break;
+        case ctrl(KEY_RIGHT): wordright(ed, 0); break;
+        case ctrl(KEY_LEFT): wordleft(ed, 0); break;
         case KEY_CTRL_HOME: top(ed, 0); break;
         case KEY_CTRL_END: bottom(ed, 0); break;
 
