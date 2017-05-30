@@ -1702,6 +1702,9 @@ void goto_anything(struct editor *ed, char *query) {
   if (query[0] == '#') {
     find_text(ed, query + 1);
   }
+  if (query[0] == '@') {
+    find_text(ed, query + 1);
+  }
 }
 
 void redraw_screen(struct editor *ed) {
