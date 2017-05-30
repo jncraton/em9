@@ -1633,34 +1633,6 @@ void save_editor(struct editor *ed) {
   ed->refresh = 1;
 }
 
-void pipe_command(struct editor *ed) {
-  FILE *f;
-  char buffer[512];
-  int n;
-  int pos;
-
-  if (!prompt(ed, "Command: ", 1)) {
-    ed->refresh = 1;
-    return;
-  }
-  
-  f = popen(ed->env->linebuf, "r");
-  if (!f) {
-    display_message(ed, "Error %d running command (%s)", errno, strerror(errno));
-    sleep(5);
-  } else {
-    erase_selection(ed);
-    pos = ed->linepos + ed->col;
-    while ((n = fread(buffer, 1, sizeof(buffer), f)) > 0) {
-      insert(ed, pos, buffer, n);
-      pos += n;
-    }
-    moveto(ed, pos, 0);
-    pclose(f);
-  }
-  ed->refresh = 1;
-}
-
 void find_text(struct editor *ed, char* search) {
   int slen, selstart, selend;
   int own_search = 0; //tracks ownership of search string to determine if it should be freed
@@ -1842,7 +1814,6 @@ void edit(struct editor *ed) {
         case ctrl('r'): redo(ed); break;
         case ctrl('v'): paste_selection(ed); break;
         case ctrl('s'): save_editor(ed); break;
-        case ctrl('p'): pipe_command(ed); break;
 #endif
       }
     }
