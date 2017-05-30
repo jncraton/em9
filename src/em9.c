@@ -1561,7 +1561,7 @@ void find_text(struct editor *ed, char* search) {
 }
 
 void goto_line(struct editor *ed, int lineno) {
-  int l, pos;
+  int l, pos, new_pos;
 
   ed->anchor = -1;
   if (!lineno && prompt(ed, "Goto line: ", 1)) {
@@ -1570,8 +1570,9 @@ void goto_line(struct editor *ed, int lineno) {
   if (lineno > 0) {
     pos = 0;
     for (l = 0; l < lineno - 1; l++) {
-      pos = next_line(ed, pos, 1);
-      if (pos < 0) break;
+      new_pos = next_line(ed, pos, 1);
+      if (new_pos < 0) break;
+      pos = new_pos;
     }
   } else {
     pos = -1;
