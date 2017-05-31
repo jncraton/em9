@@ -601,10 +601,6 @@ void get_console_size(struct env *env) {
   env->linebuf = realloc(env->linebuf, env->cols + LINEBUF_EXTRA);
 }
 
-void clear_screen() {
-  fputs(CLRSCR, stdout);
-}
-
 void gotoxy(int col, int line) {
   char buf[32];
 
