@@ -11,7 +11,9 @@ static: src/em9.c
 
 release: src/em9.c
 	gcc -Os src/em9.c -o em9
+	du -b em9
 	strip --strip-all em9
+	du -b em9
 	rm -f em9.xz
 	xz -9e em9
 	du -b em9.xz
