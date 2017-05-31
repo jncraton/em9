@@ -389,7 +389,8 @@ void erase(struct editor *ed, int pos, int len) {
 //
 
 int line_length(struct editor *ed, int linepos) {
-  for (int pos = linepos;;pos++) {
+	int pos;
+  for (pos = linepos;;pos++) {
     int ch = get(ed, pos);
     if (ch < 0 || ch == '\n' || ch == '\r') return pos - linepos;
   }
