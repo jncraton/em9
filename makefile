@@ -17,6 +17,10 @@ release: src/em9.c
 	rm -f em9.xz
 	xz -9e em9
 	du -b em9.xz
+
+install: src/em9.c
+	gcc -O3 src/em9.c -o em9
+	mv em9 /usr/local/bin/	
 			
 clean:
 	rm em9*
