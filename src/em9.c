@@ -785,14 +785,27 @@ enum key_codes get_key() {
   }
 }
 
+//
+// Display functions
+//
+
+void display_message(struct editor *ed, char *fmt, ...) {
+  va_list args;
+
+  va_start(args, fmt);
+  printf(GOTO_LINE_COL, ed->env->lines + 1, 1);
+  fputs(STATUS_COLOR, stdout);
+  vprintf(fmt, args);
+  fputs(CLREOL TEXT_COLOR, stdout);
+  fflush(stdout);
+  va_end(args);
+}
+
 int prompt(struct editor *ed, char *msg, int selection) {
   int maxlen, len, ch;
   char *buf = ed->env->linebuf;
 
-  printf(GOTO_LINE_COL, ed->env->lines + 1, 1);
-  fputs(STATUS_COLOR, stdout);
-  fputs(msg, stdout);
-  fputs(CLREOL, stdout);
+  display_message(ed, msg);
 
   len = 0;
   maxlen = ed->env->cols - strlen(msg) - 1;
@@ -824,22 +837,6 @@ int prompt(struct editor *ed, char *msg, int selection) {
 int ask() {
   int ch = getchar();
   return ch == 'y' || ch == 'Y';
-}
-
-//
-// Display functions
-//
-
-void display_message(struct editor *ed, char *fmt, ...) {
-  va_list args;
-
-  va_start(args, fmt);
-  printf(GOTO_LINE_COL, ed->env->lines + 1, 1);
-  fputs(STATUS_COLOR, stdout);
-  vprintf(fmt, args);
-  fputs(CLREOL TEXT_COLOR, stdout);
-  fflush(stdout);
-  va_end(args);
 }
 
 void draw_full_statusline(struct editor *ed) {
