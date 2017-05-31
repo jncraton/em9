@@ -16,26 +16,18 @@ int linux_console = 0;
 #define MINEXTEND      32768
 #define LINEBUF_EXTRA  32
 
-#ifndef TABSIZE
-#define TABSIZE        8
-#endif
+#define TABSIZE        2
+#define PAGESIZE       20
+#define INDENT         "  "
 
-#ifndef PAGESIZE
-#define PAGESIZE        20
-#endif
+#define CLRSCR         "\033[0J"
+#define CLREOL         "\033[K"
+#define GOTO_LINE_COL  "\033[%d;%dH"
+#define RESET_COLOR    "\033[0m"
 
-#ifndef INDENT
-#define INDENT "  "
-#endif
-
-#define CLRSCR           "\033[0J"
-#define CLREOL           "\033[K"
-#define GOTO_LINE_COL    "\033[%d;%dH"
-#define RESET_COLOR      "\033[0m"
-
-#define TEXT_COLOR       "\033[0m"
-#define SELECT_COLOR     "\033[7m\033[1m"
-#define STATUS_COLOR     "\033[1m\033[7m"
+#define TEXT_COLOR     "\033[0m"
+#define SELECT_COLOR   "\033[7m\033[1m"
+#define STATUS_COLOR   "\033[1m\033[7m"
 
 enum key_codes {KEY_BACKSPACE = 0x108, KEY_ESC,KEY_INS, KEY_DEL, KEY_LEFT, 
   KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_HOME, KEY_END, KEY_ENTER, KEY_TAB,
