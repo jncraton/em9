@@ -90,7 +90,6 @@ struct editor {
   int lineupdate;            // Flag to trigger redraw of current line
   int dirty;                 // Dirty flag is set when the editor buffer has been changed
 
-  int newfile;               // File is a new file
   int permissions;           // File permissions
 
   struct env *env;           // Reference to global editor environment
@@ -1415,25 +1414,8 @@ void duplicate_selection_or_line(struct editor *ed) {
 void save_editor(struct editor *ed) {
   int rc;
   
-  if (!ed->dirty && !ed->newfile) return;
+  if (!ed->dirty) return;
   
-  if (ed->newfile) {
-    if (!prompt(ed, "Save as: ", 1)) {
-      ed->refresh = 1;
-      return;
-    }
-
-    if (access(ed->env->linebuf, F_OK) == 0) {
-      display_message(ed, "Overwrite %s (y/n)? ", ed->env->linebuf);
-      if (!ask()) {
-        ed->refresh = 1;
-        return;
-      }
-    }
-    strcpy(ed->filename, ed->env->linebuf);
-    ed->newfile = 0;
-  }
-
   rc = save_file(ed);
   if (rc < 0) {
     display_message(ed, "Error %d saving document (%s)", errno, strerror(errno));
