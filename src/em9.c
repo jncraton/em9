@@ -30,7 +30,7 @@ int linux_console = 0;
 
 #define CLRSCR           "\033[0J"
 #define CLREOL           "\033[K"
-#define GOTOXY           "\033[%d;%dH"
+#define GOTO_LINE_COL    "\033[%d;%dH"
 #define RESET_COLOR      "\033[0m"
 
 #define TEXT_COLOR       "\033[0m"
@@ -601,13 +601,6 @@ void get_console_size(struct env *env) {
   env->linebuf = realloc(env->linebuf, env->cols + LINEBUF_EXTRA);
 }
 
-void gotoxy(int col, int line) {
-  char buf[32];
-
-  sprintf(buf, GOTOXY, line + 1, col + 1);
-  fputs(buf, stdout);
-}
-
 //
 // Keyboard functions
 //
@@ -622,7 +615,6 @@ void get_modifier_keys(int *shift, int *ctrl) {
     }
   }
 }
-
 enum key_codes get_key() {
   int ch, shift, ctrl;
 
@@ -797,7 +789,7 @@ int prompt(struct editor *ed, char *msg, int selection) {
   int maxlen, len, ch;
   char *buf = ed->env->linebuf;
 
-  gotoxy(0, ed->env->lines);
+  printf(GOTO_LINE_COL, ed->env->lines + 1, 1);
   fputs(STATUS_COLOR, stdout);
   fputs(msg, stdout);
   fputs(CLREOL, stdout);
@@ -842,7 +834,7 @@ void display_message(struct editor *ed, char *fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
-  gotoxy(0, ed->env->lines);
+  printf(GOTO_LINE_COL, ed->env->lines + 1, 1);
   fputs(STATUS_COLOR, stdout);
   vprintf(fmt, args);
   fputs(CLREOL TEXT_COLOR, stdout);
@@ -853,13 +845,13 @@ void display_message(struct editor *ed, char *fmt, ...) {
 void draw_full_statusline(struct editor *ed) {
   struct env *env = ed->env;
   int namewidth = env->cols - 19;
-  gotoxy(0, env->lines);
+  printf(GOTO_LINE_COL, env->lines + 1, 1);
   sprintf(env->linebuf, STATUS_COLOR "%*.*s%c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, -namewidth, namewidth, ed->filename, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
   fputs(env->linebuf, stdout);
 }
 
 void draw_statusline(struct editor *ed) {
-  gotoxy(ed->env->cols - 19, ed->env->lines);
+  printf(GOTO_LINE_COL, ed->env->lines + 1, ed->env->cols - 18);
   sprintf(ed->env->linebuf, STATUS_COLOR "%c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
   fputs(ed->env->linebuf, stdout);
 }
@@ -940,7 +932,7 @@ void display_line(struct editor *ed, int pos, int fullline) {
 }
 
 void update_line(struct editor *ed) {
-  gotoxy(0, ed->line - ed->topline);
+  printf(GOTO_LINE_COL, ed->line - ed->topline + 1, 1);
   display_line(ed, ed->linepos, 0);
 }
 
@@ -948,7 +940,7 @@ void draw_screen(struct editor *ed) {
   int pos;
   int i;
 
-  gotoxy(0, 0);
+  printf(GOTO_LINE_COL, 1, 1);
   fputs(TEXT_COLOR, stdout);
   pos = ed->toppos;
   for (i = 0; i < ed->env->lines; i++) {
@@ -963,7 +955,7 @@ void draw_screen(struct editor *ed) {
 
 void position_cursor(struct editor *ed) {
   int col = column(ed, ed->linepos, ed->col);
-  gotoxy(col - ed->margin, ed->line - ed->topline);
+  printf(GOTO_LINE_COL, ed->line - ed->topline + 1, col - ed->margin + 1);
 }
 
 //
@@ -1731,7 +1723,7 @@ int main(int argc, char *argv[]) {
     if (quit(&env)) break;
   }
 
-  gotoxy(0, env.lines + 1);
+  printf(GOTO_LINE_COL, env.lines + 2, 1);
   fputs(RESET_COLOR CLREOL, stdout);
   tcsetattr(0, TCSANOW, &orig_tio);   
 
