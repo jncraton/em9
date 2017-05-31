@@ -99,17 +99,15 @@ struct editor {
 };
 
 struct env {
-  struct editor *ed;   // Current editor
+  struct editor *ed; // Current editor
 
-  char *clipboard; // Clipboard
-  int clipsize;             // Clipboard size
+  char *clipboard;
+  int clipsize;
 
-  char *linebuf;   // Scratch buffer
+  char *linebuf;     // Scratch buffer
 
-  int cols;                 // Console columns
-  int lines;                // Console lines
- 
-  int untitled;             // Counter for untitled files
+  int cols;          // Console columns
+  int lines;         // Console lines
 };
 
 //
