@@ -601,10 +601,6 @@ void get_console_size(struct env *env) {
   env->linebuf = realloc(env->linebuf, env->cols + LINEBUF_EXTRA);
 }
 
-void outbuf(unsigned char *buf, int len) {
-  fwrite(buf, 1, len, stdout);
-}
-
 void outstr(char *str) {
   fputs(str, stdout);
 }
@@ -818,7 +814,7 @@ int prompt(struct editor *ed, char *msg, int selection) {
   maxlen = ed->env->cols - strlen(msg) - 1;
   if (selection) {
     len = get_selected_text(ed, buf, maxlen);
-    outbuf(buf, len);
+    fwrite(buf, 1, len, stdout);
   }
 
   for (;;) {
@@ -948,7 +944,7 @@ void display_line(struct editor *ed, int pos, int fullline) {
     for (s = TEXT_COLOR; *s; s++) *bufptr++ = *s;
   }
 
-  outbuf(ed->env->linebuf, bufptr - ed->env->linebuf);
+  fwrite(ed->env->linebuf, 1, bufptr - ed->env->linebuf, stdout);
 }
 
 void update_line(struct editor *ed) {
