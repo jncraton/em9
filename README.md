@@ -19,6 +19,10 @@ My goal is for em9 to be able edit a text file effectively. Sticking with the si
 
 em9 is designed to force you to use native operating system and shell features in place of embedding these features in the editor itself. Here are some example operations.
 
+## Find and replace in a file
+
+Don't use em9. I'd recommend `sed -i s/needle/replacement/`
+
 ## Appending content from a shell command
 
 Don't use em9 at all. Use `command >> file`.
