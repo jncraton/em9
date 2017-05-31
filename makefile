@@ -1,7 +1,7 @@
 all: em9
 
 em9: src/em9.c
-	gcc -O0 src/em9.c -o em9
+	gcc -O0 -Wall src/em9.c -o em9
 
 static: src/em9.c
 	gcc -Os -static src/em9.c -o em9-static

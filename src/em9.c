@@ -68,17 +68,17 @@ struct undo {
   int pos;                 // Editor position
   int erased;              // Size of erased contents
   int inserted;            // Size of inserted contents
-  unsigned char *undobuf;  // Erased contents for undo
-  unsigned char *redobuf;  // Inserted contents for redo
+  char *undobuf;  // Erased contents for undo
+  char *redobuf;  // Inserted contents for redo
   struct undo *next;       // Next undo buffer
   struct undo *prev;       // Previous undo buffer
 };
 
 struct editor {
-  unsigned char *start;      // Start of text buffer
-  unsigned char *gap;        // Start of gap
-  unsigned char *rest;       // End of gap
-  unsigned char *end;        // End of text buffer
+  char *start;      // Start of text buffer
+  char *gap;        // Start of gap
+  char *rest;       // End of gap
+  char *end;        // End of text buffer
 
   int toppos;                // Text position for current top screen line
   int topline;               // Line number for top of screen
@@ -109,10 +109,10 @@ struct editor {
 struct env {
   struct editor *ed;   // Current editor
 
-  unsigned char *clipboard; // Clipboard
+  char *clipboard; // Clipboard
   int clipsize;             // Clipboard size
 
-  unsigned char *linebuf;   // Scratch buffer
+  char *linebuf;   // Scratch buffer
 
   int cols;                 // Console columns
   int lines;                // Console lines
@@ -181,7 +181,7 @@ int load_file(struct editor *ed, char *filename) {
   length = statbuf.st_size;
   ed->permissions = statbuf.st_mode & 0777;
 
-  ed->start = (unsigned char *) malloc(length + MINEXTEND);
+  ed->start = (char *) malloc(length + MINEXTEND);
   if (!ed->start) goto err;
   if (read(f, ed->start, length) != length) goto err;
 
@@ -224,15 +224,15 @@ int text_length(struct editor *ed) {
   return (ed->gap - ed->start) + (ed->end - ed->rest);
 }
 
-unsigned char *text_ptr(struct editor *ed, int pos) {
-  unsigned char *p = ed->start + pos;
+char *text_ptr(struct editor *ed, int pos) {
+  char *p = ed->start + pos;
   if (p >= ed->gap) p += (ed->rest - ed->gap);
   return p;
 }
 
 void move_gap(struct editor *ed, int pos, int minsize) {
   int gapsize = ed->rest - ed->gap;
-  unsigned char *p = text_ptr(ed, pos);
+  char *p = text_ptr(ed, pos);
   if (minsize < 0) minsize = 0;
 
   if (minsize <= gapsize) {
@@ -247,14 +247,14 @@ void move_gap(struct editor *ed, int pos, int minsize) {
     }
   } else {
     int newsize;
-    unsigned char *start;
-    unsigned char *gap;
-    unsigned char *rest;
-    unsigned char *end;
+    char *start;
+    char *gap;
+    char *rest;
+    char *end;
 
     if (gapsize + MINEXTEND > minsize) minsize = gapsize + MINEXTEND;
     newsize = (ed->end - ed->start) - gapsize + minsize;
-    start = (unsigned char *) malloc(newsize); // TODO check for out of memory
+    start = (char *) malloc(newsize); // TODO check for out of memory
     gap = start + pos;
     rest = gap + minsize;
     end = start + newsize;
@@ -284,14 +284,14 @@ void close_gap(struct editor *ed) {
 }
 
 int get(struct editor *ed, int pos) {
-  unsigned char *p = text_ptr(ed, pos);
+  char *p = text_ptr(ed, pos);
   if (p >= ed->end) return -1;
   return *p;
 }
 
-int compare(struct editor *ed, unsigned char *buf, int pos, int len) {
-  unsigned char *bufptr = buf;
-  unsigned char *p = ed->start + pos;
+int compare(struct editor *ed, char *buf, int pos, int len) {
+  char *bufptr = buf;
+  char *p = ed->start + pos;
   if (p >= ed->gap) p += (ed->rest - ed->gap);
 
   while (len > 0) {
@@ -304,9 +304,9 @@ int compare(struct editor *ed, unsigned char *buf, int pos, int len) {
   return 1;
 }
 
-int copy(struct editor *ed, unsigned char *buf, int pos, int len) {
-  unsigned char *bufptr = buf;
-  unsigned char *p = ed->start + pos;
+int copy(struct editor *ed, char *buf, int pos, int len) {
+  char *bufptr = buf;
+  char *p = ed->start + pos;
   if (p >= ed->gap) p += (ed->rest - ed->gap);
 
   while (len > 0) {
@@ -319,8 +319,8 @@ int copy(struct editor *ed, unsigned char *buf, int pos, int len) {
   return bufptr - buf;
 }
 
-void replace(struct editor *ed, int pos, int len, unsigned char *buf, int bufsize, int doundo) {
-  unsigned char *p;
+void replace(struct editor *ed, int pos, int len, char *buf, int bufsize, int doundo) {
+  char *p;
   struct undo *undo;
 
   // Store undo information
@@ -386,7 +386,7 @@ void replace(struct editor *ed, int pos, int len, unsigned char *buf, int bufsiz
   ed->dirty = 1;
 }
 
-void insert(struct editor *ed, int pos, unsigned char *buf, int bufsize) {
+void insert(struct editor *ed, int pos, char *buf, int bufsize) {
   replace(ed, pos, 0, buf, bufsize, 1);
 }
 
@@ -434,7 +434,7 @@ int next_line(struct editor *ed, int pos, int dir) {
 }
 
 int column(struct editor *ed, int linepos, int col) {
-  unsigned char *p = text_ptr(ed, linepos);
+  char *p = text_ptr(ed, linepos);
   int c = 0;
   while (col > 0) {
     if (p == ed->end) break;
@@ -858,8 +858,8 @@ void display_line(struct editor *ed, int pos, int fullline) {
   int col = 0;
   int margin = ed->margin;
   int maxcol = ed->env->cols + margin;
-  unsigned char *bufptr = ed->env->linebuf;
-  unsigned char *p = text_ptr(ed, pos);
+  char *bufptr = ed->env->linebuf;
+  char *p = text_ptr(ed, pos);
   int selstart, selend, ch;
   char *s;
 
@@ -1054,7 +1054,7 @@ void right(struct editor *ed, int select) {
 }
 
 int wordchar(int ch) {
-  return ch >= 'A' && ch <= 'Z' || ch >= 'a' && ch <= 'z' || ch >= '0' && ch <= '9';
+  return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9');
 }
 
 void wordleft(struct editor *ed, int select) {
@@ -1140,7 +1140,7 @@ void pagedown(struct editor *ed, int select) {
 // Text editing
 //
 
-void insert_char(struct editor *ed, unsigned char ch) {
+void insert_char(struct editor *ed, char ch) {
   erase_selection(ed);
   insert(ed, ed->linepos + ed->col, &ch, 1);
   ed->col++;
@@ -1151,7 +1151,7 @@ void insert_char(struct editor *ed, unsigned char ch) {
 
 void newline(struct editor *ed) {
   int p;
-  unsigned char ch;
+  char ch;
 
   erase_selection(ed);
   insert(ed, ed->linepos + ed->col, "\n", 1);
@@ -1209,9 +1209,9 @@ void backspace(struct editor *ed) {
   del(ed);
 }
 
-void indent(struct editor *ed, unsigned char *indentation) {
+void indent(struct editor *ed, char *indentation) {
   int start, end, i, lines, toplines, newline, ch;
-  unsigned char *buffer, *p;
+  char *buffer, *p;
   int buflen;
   int width = strlen(indentation);
   int pos = ed->linepos + ed->col;
@@ -1266,9 +1266,9 @@ void indent(struct editor *ed, unsigned char *indentation) {
   ed->refresh = 1;
 }
 
-void unindent(struct editor *ed, unsigned char *indentation) {
+void unindent(struct editor *ed, char *indentation) {
   int start, end, i, newline, ch, shrinkage, topofs;
-  unsigned char *buffer, *p;
+  char *buffer, *p;
   int width = strlen(indentation);
   int pos = ed->linepos + ed->col;
 
@@ -1371,7 +1371,7 @@ void copy_selection_or_line(struct editor *ed) {
     if (f_clip) pclose(f_clip);
   } else {  
     ed->env->clipsize = selend - selstart;
-    ed->env->clipboard = (unsigned char *) realloc(ed->env->clipboard, ed->env->clipsize);
+    ed->env->clipboard = (char *) realloc(ed->env->clipboard, ed->env->clipsize);
     if (!ed->env->clipboard) return;
     copy(ed, ed->env->clipboard, selstart, ed->env->clipsize);
   }
@@ -1497,7 +1497,7 @@ void find_text(struct editor *ed, char* search) {
   slen = strlen(search);
 
   if (slen > 0) {
-    unsigned char *match;
+    char *match;
     
     close_gap(ed);
     match = strstr(ed->start + ed->linepos + ed->col, search);
@@ -1567,7 +1567,7 @@ int quit(struct env *env) {
 
 void edit(struct editor *ed) {
   int done = 0;
-  enum key_codes key;
+  int key;
 
   ed->refresh = 1;
   while (!done) {
@@ -1595,7 +1595,7 @@ void edit(struct editor *ed) {
         case '/': find_text(ed, 0); break;
       }
 #else
-      insert_char(ed, (unsigned char) key);
+      insert_char(ed, (char) key);
 #endif
     } else {
       switch (key) {
@@ -1667,7 +1667,6 @@ void edit(struct editor *ed) {
 
 int main(int argc, char *argv[]) {
   struct env env;
-  int rc;
   sigset_t blocked_sigmask, orig_sigmask;
   struct termios tio;
   struct termios orig_tio;
