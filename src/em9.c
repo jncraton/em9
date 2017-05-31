@@ -1412,20 +1412,6 @@ void duplicate_selection_or_line(struct editor *ed) {
 // Editor Commands
 //
 
-void read_from_stdin(struct editor *ed) {
-  char buffer[512];
-  int n, pos;
-
-  pos = 0;
-  while ((n = fread(buffer, 1, sizeof(buffer), stdin)) > 0) {
-    insert(ed, pos, buffer, n);
-    pos += n;
-  }
-  strcpy(ed->filename, "<stdin>");  
-  ed->newfile = 1;
-  ed->dirty = 0;
-}
-
 void save_editor(struct editor *ed) {
   int rc;
   
@@ -1657,21 +1643,11 @@ int main(int argc, char *argv[]) {
 	
   env.ed = create_editor(&env);
 
-  if (argc >= 2) {
-    if (load_file(env.ed, argv[1]) < 0) {
-      perror(argv[1]);
-      return 0;
-    }
-  } else {
-    if (isatty(fileno(stdin))) {
-      return 0;
-    } else {
-      read_from_stdin(env.ed);
-    }    
-  }
+  if (argc < 2) return 0;
 
-  if (!isatty(fileno(stdin))) {
-    if (!freopen("/dev/tty", "r", stdin)) perror("/dev/tty");
+  if (load_file(env.ed, argv[1]) < 0) {
+    perror(argv[1]);
+    return 0;
   }
 
   if (argc >= 3) goto_anything(env.ed, argv[2]);
