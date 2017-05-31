@@ -601,19 +601,15 @@ void get_console_size(struct env *env) {
   env->linebuf = realloc(env->linebuf, env->cols + LINEBUF_EXTRA);
 }
 
-void outstr(char *str) {
-  fputs(str, stdout);
-}
-
 void clear_screen() {
-  outstr(CLRSCR);
+  fputs(CLRSCR, stdout);
 }
 
 void gotoxy(int col, int line) {
   char buf[32];
 
   sprintf(buf, GOTOXY, line + 1, col + 1);
-  outstr(buf);
+  fputs(buf, stdout);
 }
 
 //
@@ -806,9 +802,9 @@ int prompt(struct editor *ed, char *msg, int selection) {
   char *buf = ed->env->linebuf;
 
   gotoxy(0, ed->env->lines);
-  outstr(STATUS_COLOR);
-  outstr(msg);
-  outstr(CLREOL);
+  fputs(STATUS_COLOR, stdout);
+  fputs(msg, stdout);
+  fputs(CLREOL, stdout);
 
   len = 0;
   maxlen = ed->env->cols - strlen(msg) - 1;
@@ -827,7 +823,7 @@ int prompt(struct editor *ed, char *msg, int selection) {
       return len > 0;
     } else if (ch == KEY_BACKSPACE) {
       if (len > 0) {
-        outstr("\b \b");
+        fputs("\b \b", stdout);
         len--;
       }
     } else if (ch >= ' ' && ch < 0x100 && len < maxlen) {
@@ -851,9 +847,9 @@ void display_message(struct editor *ed, char *fmt, ...) {
 
   va_start(args, fmt);
   gotoxy(0, ed->env->lines);
-  outstr(STATUS_COLOR);
+  fputs(STATUS_COLOR, stdout);
   vprintf(fmt, args);
-  outstr(CLREOL TEXT_COLOR);
+  fputs(CLREOL TEXT_COLOR, stdout);
   fflush(stdout);
   va_end(args);
 }
@@ -863,13 +859,13 @@ void draw_full_statusline(struct editor *ed) {
   int namewidth = env->cols - 19;
   gotoxy(0, env->lines);
   sprintf(env->linebuf, STATUS_COLOR "%*.*s%c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, -namewidth, namewidth, ed->filename, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
-  outstr(env->linebuf);
+  fputs(env->linebuf, stdout);
 }
 
 void draw_statusline(struct editor *ed) {
   gotoxy(ed->env->cols - 19, ed->env->lines);
   sprintf(ed->env->linebuf, STATUS_COLOR "%c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
-  outstr(ed->env->linebuf);
+  fputs(ed->env->linebuf, stdout);
 }
 
 void display_line(struct editor *ed, int pos, int fullline) {
@@ -957,11 +953,11 @@ void draw_screen(struct editor *ed) {
   int i;
 
   gotoxy(0, 0);
-  outstr(TEXT_COLOR);
+  fputs(TEXT_COLOR, stdout);
   pos = ed->toppos;
   for (i = 0; i < ed->env->lines; i++) {
     if (pos < 0) {
-      outstr(CLREOL "\r\n");
+      fputs(CLREOL "\r\n", stdout);
     } else {
       display_line(ed, pos, 1);
       pos = next_line(ed, pos, 1);
@@ -1722,8 +1718,8 @@ int main(int argc, char *argv[]) {
   if (getenv("TERM") && strcmp(getenv("TERM"), "linux") == 0) {
     linux_console = 1;
   } else {
-    outstr("\033[3 q");  // xterm
-    outstr("\033]50;CursorShape=2\a");  // KDE
+    fputs("\033[3 q", stdout);  // xterm
+    fputs("\033]50;CursorShape=2\a", stdout);  // KDE
   }
 
   get_console_size(&env);
@@ -1740,7 +1736,7 @@ int main(int argc, char *argv[]) {
   }
 
   gotoxy(0, env.lines + 1);
-  outstr(RESET_COLOR CLREOL);
+  fputs(RESET_COLOR CLREOL, stdout);
   tcsetattr(0, TCSANOW, &orig_tio);   
 
   delete_editor(env.ed);
