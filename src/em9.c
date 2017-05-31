@@ -396,12 +396,7 @@ int line_length(struct editor *ed, int linepos) {
 }
 
 int line_start(struct editor *ed, int pos) {
-  while (1) {
-    if (pos == 0) break;
-    if (get(ed, pos - 1) == '\n') break;
-    pos--;
-  }
-
+  for (; pos > 0 && get(ed, pos - 1) != '\n'; pos--);
   return pos;
 }
 
