@@ -56,16 +56,6 @@ enum key_codes {KEY_BACKSPACE = 0x108, KEY_ESC,KEY_INS, KEY_DEL, KEY_LEFT,
 
 struct env;
 
-struct undo {
-  int pos;                 // Editor position
-  int erased;              // Size of erased contents
-  int inserted;            // Size of inserted contents
-  char *undobuf;  // Erased contents for undo
-  char *redobuf;  // Inserted contents for redo
-  struct undo *next;       // Next undo buffer
-  struct undo *prev;       // Previous undo buffer
-};
-
 struct editor {
   char *start;      // Start of text buffer
   char *gap;        // Start of gap
@@ -82,10 +72,6 @@ struct editor {
   int lastcol;               // Remembered column from last horizontal navigation
   int anchor;                // Anchor position for selection
   
-  struct undo *undohead;     // Start of undo buffer list
-  struct undo *undotail;     // End of undo buffer list
-  struct undo *undo;         // Undo/redo boundary
-
   int refresh;               // Flag to trigger screen redraw
   int lineupdate;            // Flag to trigger redraw of current line
   int dirty;                 // Dirty flag is set when the editor buffer has been changed
@@ -113,35 +99,6 @@ struct env {
 // Editor buffer functions
 //
 
-void clear_undo(struct editor *ed) {
-  struct undo *undo = ed->undohead;
-  while (undo) {
-    struct undo *next = undo->next;
-    free(undo->undobuf);
-    free(undo->redobuf);
-    free(undo);
-    undo = next;
-  }
-  ed->undohead = ed->undotail = ed->undo = NULL;
-}
-
-void reset_undo(struct editor *ed) {
-  while (ed->undotail != ed->undo) {
-    struct undo *undo = ed->undotail;
-    if (!undo) {
-      ed->undohead = NULL;
-      ed->undotail = NULL;
-      break;
-    }
-    ed->undotail = undo->prev;
-    if (undo->prev) undo->prev->next = NULL;
-    free(undo->undobuf);
-    free(undo->redobuf);
-    free(undo);
-  }
-  ed->undo = ed->undotail;
-}
-
 struct editor *create_editor(struct env *env) {
   struct editor *ed = (struct editor *) malloc(sizeof(struct editor));
   memset(ed, 0, sizeof(struct editor));
@@ -153,7 +110,6 @@ struct editor *create_editor(struct env *env) {
 void delete_editor(struct editor *ed) {
   ed->env->ed = NULL;
   if (ed->start) free(ed->start);
-  clear_undo(ed);
   free(ed);
 }
 
@@ -201,7 +157,6 @@ int save_file(struct editor *ed) {
 
   close(f);
   ed->dirty = 0;
-  clear_undo(ed);
   return 0;
 
 err:
@@ -308,54 +263,8 @@ int copy(struct editor *ed, char *buf, int pos, int len) {
   return bufptr - buf;
 }
 
-void replace(struct editor *ed, int pos, int len, char *buf, int bufsize, int doundo) {
+void replace(struct editor *ed, int pos, int len, char *buf, int bufsize) {
   char *p;
-  struct undo *undo;
-
-  // Store undo information
-  if (doundo) {
-    reset_undo(ed);
-    undo = ed->undotail;
-    if (undo && len == 0 && bufsize == 1 && undo->erased == 0 && pos == undo->pos + undo->inserted) {
-      // Insert character at end of current redo buffer
-      undo->redobuf = realloc(undo->redobuf, undo->inserted + 1);
-      undo->redobuf[undo->inserted] = *buf;
-      undo->inserted++;
-    } else if (undo && len == 1 && bufsize == 0 && undo->inserted == 0 && pos == undo->pos) {
-      // Erase character at end of current undo buffer
-      undo->undobuf = realloc(undo->undobuf, undo->erased + 1);
-      undo->undobuf[undo->erased] = get(ed, pos);
-      undo->erased++;
-    } else if (undo && len == 1 && bufsize == 0 && undo->inserted == 0 && pos == undo->pos - 1) {
-      // Erase character at beginning of current undo buffer
-      undo->pos--;
-      undo->undobuf = realloc(undo->undobuf, undo->erased + 1);
-      memmove(undo->undobuf + 1, undo->undobuf, undo->erased);
-      undo->undobuf[0] = get(ed, pos);
-      undo->erased++;
-    } else {
-      // Create new undo buffer
-      undo = (struct undo *) malloc(sizeof(struct undo));
-      if (ed->undotail) ed->undotail->next = undo;
-      undo->prev = ed->undotail;
-      undo->next = NULL;
-      ed->undotail = ed->undo = undo;
-      if (!ed->undohead) ed->undohead = undo;
-
-      undo->pos = pos;
-      undo->erased = len;
-      undo->inserted = bufsize;
-      undo->undobuf = undo->redobuf = NULL;
-      if (len > 0) {
-        undo->undobuf = malloc(len);
-        copy(ed, undo->undobuf, pos, len);      
-      }
-      if (bufsize > 0) {
-        undo->redobuf = malloc(bufsize);
-        memcpy(undo->redobuf, buf, bufsize);
-      }
-    }
-  }
 
   p = ed->start + pos;
   if (bufsize == 0 && p <= ed->gap && p + len >= ed->gap) {
@@ -376,11 +285,11 @@ void replace(struct editor *ed, int pos, int len, char *buf, int bufsize, int do
 }
 
 void insert(struct editor *ed, int pos, char *buf, int bufsize) {
-  replace(ed, pos, 0, buf, bufsize, 1);
+  replace(ed, pos, 0, buf, bufsize);
 }
 
 void erase(struct editor *ed, int pos, int len) {
-  replace(ed, pos, len, NULL, 0, 1);
+  replace(ed, pos, len, NULL, 0);
 }
 
 //
@@ -1230,7 +1139,7 @@ void indent(struct editor *ed, char *indentation) {
     if (ch == '\n') newline = 1;
   }
 
-  replace(ed, start, end - start, buffer, buflen, 1);
+  replace(ed, start, end - start, buffer, buflen);
   free(buffer);  
 
   if (ed->anchor < pos) {
@@ -1283,7 +1192,7 @@ void unindent(struct editor *ed, char *indentation) {
     return;
   }
 
-  replace(ed, start, end - start, buffer, p - buffer, 1);
+  replace(ed, start, end - start, buffer, p - buffer);
   free(buffer);
 
   if (ed->anchor < pos) {
@@ -1298,33 +1207,6 @@ void unindent(struct editor *ed, char *indentation) {
 
   ed->refresh = 1;
   adjust(ed);
-}
-
-void undo(struct editor *ed) {
-  if (!ed->undo) return;
-  moveto(ed, ed->undo->pos, 0);
-  replace(ed, ed->undo->pos, ed->undo->inserted, ed->undo->undobuf, ed->undo->erased, 0);
-  ed->undo = ed->undo->prev;
-  if (!ed->undo) ed->dirty = 0;
-  ed->anchor = -1;
-  ed->lastcol = ed->col;
-  ed->refresh = 1;
-}
-
-void redo(struct editor *ed) {
-  if (ed->undo) {
-    if (!ed->undo->next) return;
-    ed->undo = ed->undo->next;
-  } else {
-    if (!ed->undohead) return;
-    ed->undo = ed->undohead;
-  }
-  replace(ed, ed->undo->pos, ed->undo->erased, ed->undo->redobuf, ed->undo->inserted, 0);
-  moveto(ed, ed->undo->pos, 0);
-  ed->dirty = 1;
-  ed->anchor = -1;
-  ed->lastcol = ed->col;
-  ed->refresh = 1;
 }
 
 //
@@ -1601,8 +1483,6 @@ void edit(struct editor *ed) {
         case KEY_BACKSPACE: backspace(ed); break;
         case KEY_DEL: del(ed); break;
         case ctrl('x'): cut_selection_or_line(ed); break;
-        case ctrl('z'): undo(ed); break;
-        case ctrl('r'): redo(ed); break;
         case ctrl('v'): paste_selection(ed); break;
         case ctrl('s'): save_editor(ed); break;
 #endif
