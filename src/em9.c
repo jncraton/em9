@@ -1279,14 +1279,7 @@ void edit(struct editor *ed) {
     key = get_key();
 
     if (key >= ' ' && key <= 0x7F) {
-#ifdef LESS
-      switch (key) {
-        case 'q': done = 1; break;
-        case '/': find_text(ed, 0); break;
-      }
-#else
       insert_char(ed, (char) key);
-#endif
     } else {
       switch (key) {
         case ctrl('t'): goto_line(ed, 1); break;
@@ -1331,9 +1324,6 @@ void edit(struct editor *ed) {
         case ctrl('w'): done = 1; break;
         case ctrl('o'): done = 1; break;
         case ctrl('n'): done = 1; break;
-#ifdef LESS
-        case KEY_ESC: done = 1; break;
-#else
         case KEY_TAB: indent(ed, INDENT); break;
         case KEY_SHIFT_TAB: unindent(ed, INDENT); break;
 
@@ -1343,7 +1333,6 @@ void edit(struct editor *ed) {
         case ctrl('x'): cut_selection_or_line(ed); break;
         case ctrl('v'): paste_selection(ed); break;
         case ctrl('s'): save_editor(ed); break;
-#endif
       }
     }
   }
