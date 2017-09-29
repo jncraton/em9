@@ -1,6 +1,6 @@
 # em9 ![build status](https://api.travis-ci.org/jncraton/em9.png)
 
-A simple text editor. The name "nano" was already taken, so I went with em9 (E to the minus 9).
+A simple text editor using modern GUI keybindings. The name "nano" was already taken, so I went with em9 (E to the minus 9).
 
 My goal is for em9 to be able edit a text file effectively and do nothing else. It will not:
 
