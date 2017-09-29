@@ -37,4 +37,14 @@ Don't use em9 at all. Use `command >> file`.
 Don't use em9 at all. It is a text editor, not an IDE or project management tool. You could use:
 
 - `find . -iname {filename}`
+- `git grep {text}` nding a file in a project
+
+Don't use em9 at all. It is a text editor, not an IDE or project management tool. You could use:
+
+- `find . -iname {filename}`
+- `git grep {text}` nding a file in a project
+
+Don't use em9 at all. It is a text editor, not an IDE or project management tool. You could use:
+
+- `find . -iname {filename}`
 - `git grep {text}` 

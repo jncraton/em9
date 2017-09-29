@@ -13,7 +13,7 @@
 #define O_BINARY 0
 int linux_console = 0;
 
-#define MINEXTEND      32768
+#define MAXSIZE      32768
 #define LINEBUF_EXTRA  32
 
 #define TABSIZE        2
@@ -41,19 +41,6 @@ enum key_codes {KEY_BACKSPACE = 0x108, KEY_ESC,KEY_INS, KEY_DEL, KEY_LEFT,
 
 #define ctrl(c) ((c) - 0x60)
 
-//
-// Editor data block
-//
-// Structure of split buffer:
-//
-//    +------------------+------------------+------------------+
-//    | text before gap  |        gap       |  text after gap  |
-//    +------------------+------------------+------------------+
-//    ^                  ^                  ^                  ^     
-//    |                  |                  |                  |
-//  start               gap                rest               end
-//
-
 struct editor {
   char *clipboard;
   int clipsize;
@@ -63,10 +50,7 @@ struct editor {
   int cols;          // Console columns
   int lines;         // Console lines
 
-  char *start;      // Start of text buffer
-  char *gap;        // Start of gap
-  char *rest;       // End of gap
-  char *end;        // End of text buffer
+  char *content;     // Text Buffer
 
   int toppos;                // Text position for current top screen line
   int topline;               // Line number for top of screen
@@ -104,12 +88,12 @@ int load_file(struct editor *ed, char *filename) {
   length = statbuf.st_size;
   ed->permissions = statbuf.st_mode & 0777;
 
-  ed->start = (char *) malloc(length + MINEXTEND);
-  if (!ed->start) goto err;
-  if (read(f, ed->start, length) != length) goto err;
+  if (length > MAXSIZE) goto err;
 
-  ed->gap = ed->start + length;
-  ed->rest = ed->end = ed->gap + MINEXTEND;
+  ed->content = (char *) malloc(MAXSIZE);
+  if (!ed->content) goto err;
+  if (read(f, ed->content, length) != length) goto err;
+
   ed->anchor = -1;
 
   close(f);
@@ -117,9 +101,9 @@ int load_file(struct editor *ed, char *filename) {
 
 err:
   close(f);
-  if (ed->start) {
-    free(ed->start);
-    ed->start = NULL;
+  if (ed->content) {
+    free(ed->content);
+    ed->content = NULL;
   }
   return -1;
 }
@@ -130,8 +114,7 @@ int save_file(struct editor *ed) {
   f = open(ed->filename, O_CREAT | O_TRUNC | O_WRONLY, ed->permissions);
   if (f < 0) return -1;
 
-  if (write(f, ed->start, ed->gap - ed->start) != ed->gap - ed->start) goto err;
-  if (write(f, ed->rest, ed->end - ed->rest) != ed->end - ed->rest) goto err;
+  if (write(f, ed->content, strlen(ed->content)) != strlen(ed->content)) goto err;
 
   close(f);
   ed->dirty = 0;
@@ -142,132 +125,32 @@ err:
   return -1;
 }
 
-int text_length(struct editor *ed) {
-  return (ed->gap - ed->start) + (ed->end - ed->rest);
-}
-
-char *text_ptr(struct editor *ed, int pos) {
-  char *p = ed->start + pos;
-  if (p >= ed->gap) p += (ed->rest - ed->gap);
-  return p;
-}
-
-void move_gap(struct editor *ed, int pos, int minsize) {
-  int gapsize = ed->rest - ed->gap;
-  char *p = text_ptr(ed, pos);
-  if (minsize < 0) minsize = 0;
-
-  if (minsize <= gapsize) {
-    if (p != ed->rest) {
-      if (p < ed->gap) {
-        memmove(p + gapsize, p, ed->gap - p);
-      } else {
-        memmove(ed->gap, ed->rest, p - ed->rest);
-      }
-      ed->gap = ed->start + pos;
-      ed->rest = ed->gap + gapsize;
-    }
-  } else {
-    int newsize;
-    char *start;
-    char *gap;
-    char *rest;
-    char *end;
-
-    if (gapsize + MINEXTEND > minsize) minsize = gapsize + MINEXTEND;
-    newsize = (ed->end - ed->start) - gapsize + minsize;
-    start = (char *) malloc(newsize); // TODO check for out of memory
-    gap = start + pos;
-    rest = gap + minsize;
-    end = start + newsize;
-
-    if (p < ed->gap) {
-      memcpy(start, ed->start, pos);
-      memcpy(rest, p, ed->gap - p);
-      memcpy(end - (ed->end - ed->rest), ed->rest, ed->end - ed->rest);
-    } else {
-      memcpy(start, ed->start, ed->gap - ed->start);
-      memcpy(start + (ed->gap - ed->start), ed->rest, p - ed->rest);
-      memcpy(rest, p, ed->end - p);
-    }
-
-    free(ed->start);
-    ed->start = start;
-    ed->gap = gap;
-    ed->rest = rest;
-    ed->end = end;
-  }
-}
-
-void close_gap(struct editor *ed) {
-  int len = text_length(ed);
-  move_gap(ed, len, 1);
-  ed->start[len] = 0;
-}
-
-int get(struct editor *ed, int pos) {
-  char *p = text_ptr(ed, pos);
-  if (p >= ed->end) return -1;
-  return *p;
-}
-
-int compare(struct editor *ed, char *buf, int pos, int len) {
-  char *bufptr = buf;
-  char *p = ed->start + pos;
-  if (p >= ed->gap) p += (ed->rest - ed->gap);
-
-  while (len > 0) {
-    if (p == ed->end) return 0;
-    if (*bufptr++ != *p) return 0;
-    len--;
-    if (++p == ed->gap) p = ed->rest;
-  }
-
-  return 1;
-}
-
-int copy(struct editor *ed, char *buf, int pos, int len) {
-  char *bufptr = buf;
-  char *p = ed->start + pos;
-  if (p >= ed->gap) p += (ed->rest - ed->gap);
-
-  while (len > 0) {
-    if (p == ed->end) break;
-    *bufptr++ = *p;
-    len--;
-    if (++p == ed->gap) p = ed->rest;
-  }
-
-  return bufptr - buf;
-}
-
-void replace(struct editor *ed, int pos, int len, char *buf, int bufsize) {
-  char *p;
-
-  p = ed->start + pos;
-  if (bufsize == 0 && p <= ed->gap && p + len >= ed->gap) {
-    // Handle deletions at the edges of the gap
-    ed->rest += len - (ed->gap - p);
-    ed->gap = p;
-  } else {
-    // Move the gap
-    move_gap(ed, pos + len, bufsize - len);
-
-    // Replace contents
-    memcpy(ed->start + pos, buf, bufsize);
-    ed->gap = ed->start + pos + bufsize;
-  }
-
-  // Mark buffer as dirty
-  ed->dirty = 1;
-}
-
 void insert(struct editor *ed, int pos, char *buf, int bufsize) {
-  replace(ed, pos, 0, buf, bufsize);
+  // Slide the following text over
+  memmove(ed->content + pos + bufsize, ed->content + pos, strlen(ed->content + pos));
+  // Overwrite the gap with new text
+  memcpy(ed->content + pos, buf, bufsize);
+  ed->dirty=1;
 }
 
 void erase(struct editor *ed, int pos, int len) {
-  replace(ed, pos, len, NULL, 0);
+  memmove(ed->content + pos, ed->content + pos + len, strlen(ed->content + pos + len));
+  ed->dirty=1;
+}
+
+void replace(struct editor *ed, int pos, int len, char *buf, int bufsize) {
+  erase(ed, pos, len);
+  insert(ed, pos, buf, bufsize);
+  ed->dirty=1;
+}
+
+int get(struct editor *ed, int pos) {
+  if (pos > strlen(ed->content)) return -1;
+  return ed->content[pos];
+}
+
+char* text_ptr(struct editor *ed, int pos) {
+  return ed->content + pos;
 }
 
 //
@@ -305,7 +188,7 @@ int column(struct editor *ed, int linepos, int col) {
   char *p = text_ptr(ed, linepos);
   int c = 0;
   while (col > 0) {
-    if (p == ed->end) break;
+    if (p == ed->content + MAXSIZE) break;
     if (*p == '\t') {
       int spaces = TABSIZE - c % TABSIZE;
       c += spaces;
@@ -313,7 +196,6 @@ int column(struct editor *ed, int linepos, int col) {
       c++;
     }
     col--;
-    if (++p == ed->gap) p = ed->rest;
   }
   return c;
 }
@@ -415,7 +297,7 @@ int get_selected_text(struct editor *ed, char *buffer, int size) {
   if (!get_selection(ed, &selstart, &selend)) return 0;
   len = selend - selstart;
   if (len >= size) return 0;
-  copy(ed, buffer, selstart, len);
+  strncpy(buffer, ed->content + selstart, len);
   buffer[len] = 0;
   return len;
 }
@@ -453,7 +335,7 @@ void erase_selection_or_line(struct editor *ed) {
 void select_all(struct editor *ed) {
   ed->anchor = 0;
   ed->refresh = 1;
-  moveto(ed, text_length(ed), 0);
+  moveto(ed, strlen(ed->content), 0);
 }
 
 //
@@ -742,7 +624,7 @@ void display_line(struct editor *ed, int pos, int fullline) {
       }
     }
 
-    if (p == ed->end) break;
+    if (p == ed->content + MAXSIZE) break;
     ch = *p;
     if (ch == '\r' || ch == '\n') break;
 
@@ -766,7 +648,7 @@ void display_line(struct editor *ed, int pos, int fullline) {
       col++;
     }
 
-    if (++p == ed->gap) p = ed->rest;
+    p++;
     pos++;
   }
 
@@ -955,7 +837,7 @@ void wordright(struct editor *ed, int select) {
   
   update_selection(ed, select);
   pos = ed->linepos + ed->col;
-  end = text_length(ed);
+  end = ed->content + MAXSIZE;
   next = next_line(ed, ed->linepos, 1);
   phase = 0;
   while (pos < end) {
@@ -1152,7 +1034,7 @@ void unindent(struct editor *ed, char *indentation) {
   while (i < end) {
     if (newline) {
       newline = 0;
-      if (compare(ed, indentation, i, width)) {
+      if (strncmp(ed->content + pos + i, indentation, width)) {
         i += width;
         shrinkage += width;
         if (i < ed->toppos) topofs -= width;
@@ -1213,7 +1095,7 @@ void copy_selection_or_line(struct editor *ed) {
     ed->clipsize = selend - selstart;
     ed->clipboard = (char *) realloc(ed->clipboard, ed->clipsize);
     if (!ed->clipboard) return;
-    copy(ed, ed->clipboard, selstart, ed->clipsize);
+    strncpy(ed->clipboard, ed->content+selstart, ed->clipsize);
   }
 }
 
@@ -1258,7 +1140,7 @@ void duplicate_selection_or_line(struct editor *ed) {
   buf = malloc(sellen);
   if (!buf) return;
   
-  copy(ed, buf, selstart, sellen);
+  strncpy(buf, ed->content + selstart, sellen);
 
   insert(ed, ed->linepos + ed->col, buf, sellen);
   ed->refresh = 1;
@@ -1297,7 +1179,7 @@ void find_text(struct editor *ed, char* search) {
       search = strdup(ed->linebuf);
     } else {
       search = malloc(selend - selstart);
-      copy(ed, search, selstart, selend - selstart);
+      strncpy(search, ed->content + selstart, selend - selstart);
       own_search = 1;
     }
     if (!search) return;
@@ -1308,10 +1190,9 @@ void find_text(struct editor *ed, char* search) {
   if (slen > 0) {
     char *match;
     
-    close_gap(ed);
-    match = strstr(ed->start + ed->linepos + ed->col, search);
+    match = strstr(ed->content + ed->linepos + ed->col, search);
     if (match != NULL) {
-      int pos = match - ed->start;
+      int pos = match - ed->content;
       ed->anchor = pos;
       moveto(ed, pos + slen, 1);
     } else {
@@ -1518,7 +1399,7 @@ int main(int argc, char *argv[]) {
   fputs(RESET_COLOR CLREOL, stdout);
   tcsetattr(0, TCSANOW, &orig_tio);   
 
-  if (ed->start) free(ed->start);
+  if (ed->content) free(ed->content);
   if (ed->clipboard) free(ed->clipboard);
   if (ed->linebuf) free(ed->linebuf);
   free(ed);
