@@ -54,9 +54,15 @@ enum key_codes {KEY_BACKSPACE = 0x108, KEY_ESC,KEY_INS, KEY_DEL, KEY_LEFT,
 //  start               gap                rest               end
 //
 
-struct env;
-
 struct editor {
+  char *clipboard;
+  int clipsize;
+
+  char *linebuf;     // Scratch buffer
+
+  int cols;          // Console columns
+  int lines;         // Console lines
+
   char *start;      // Start of text buffer
   char *gap;        // Start of gap
   char *rest;       // End of gap
@@ -78,40 +84,12 @@ struct editor {
 
   int permissions;           // File permissions
 
-  struct env *env;           // Reference to global editor environment
-
   char filename[FILENAME_MAX];
-};
-
-struct env {
-  struct editor *ed; // Current editor
-
-  char *clipboard;
-  int clipsize;
-
-  char *linebuf;     // Scratch buffer
-
-  int cols;          // Console columns
-  int lines;         // Console lines
 };
 
 //
 // Editor buffer functions
 //
-
-struct editor *create_editor(struct env *env) {
-  struct editor *ed = (struct editor *) malloc(sizeof(struct editor));
-  memset(ed, 0, sizeof(struct editor));
-  ed->env = env;
-  env->ed = ed;
-  return ed;
-}
-
-void delete_editor(struct editor *ed) {
-  ed->env->ed = NULL;
-  if (ed->start) free(ed->start);
-  free(ed);
-}
 
 int load_file(struct editor *ed, char *filename) {
   struct stat statbuf;
@@ -371,7 +349,7 @@ void moveto(struct editor *ed, int pos, int center) {
         ed->linepos = next;
         ed->line++;
 
-        if (ed->line >= ed->topline + ed->env->lines) {
+        if (ed->line >= ed->topline + ed->lines) {
           ed->toppos = next_line(ed, ed->toppos, 1);
           ed->topline++;
           ed->refresh = 1;
@@ -384,7 +362,7 @@ void moveto(struct editor *ed, int pos, int center) {
   }
 
   if (scroll && center) {
-    int tl = ed->line - ed->env->lines / 2;
+    int tl = ed->line - ed->lines / 2;
     if (tl < 0) tl = 0;
     for (;;) {
       if (ed->topline > tl) {
@@ -482,13 +460,13 @@ void select_all(struct editor *ed) {
 // Screen functions
 //
 
-void get_console_size(struct env *env) {
+void get_console_size(struct editor *ed) {
   struct winsize ws;
 
   ioctl(0, TIOCGWINSZ, &ws);
-  env->cols = ws.ws_col;
-  env->lines = ws.ws_row - 1;
-  env->linebuf = realloc(env->linebuf, env->cols + LINEBUF_EXTRA);
+  ed->cols = ws.ws_col;
+  ed->lines = ws.ws_row - 1;
+  ed->linebuf = realloc(ed->linebuf, ed->cols + LINEBUF_EXTRA);
 }
 
 //
@@ -683,7 +661,7 @@ void display_message(struct editor *ed, char *fmt, ...) {
   va_list args;
 
   va_start(args, fmt);
-  printf(GOTO_LINE_COL, ed->env->lines + 1, 1);
+  printf(GOTO_LINE_COL, ed->lines + 1, 1);
   fputs(STATUS_COLOR, stdout);
   vprintf(fmt, args);
   fputs(CLREOL TEXT_COLOR, stdout);
@@ -693,12 +671,12 @@ void display_message(struct editor *ed, char *fmt, ...) {
 
 int prompt(struct editor *ed, char *msg, int selection) {
   int maxlen, len, ch;
-  char *buf = ed->env->linebuf;
+  char *buf = ed->linebuf;
 
   display_message(ed, msg);
 
   len = 0;
-  maxlen = ed->env->cols - strlen(msg) - 1;
+  maxlen = ed->cols - strlen(msg) - 1;
   if (selection) {
     len = get_selected_text(ed, buf, maxlen);
     fwrite(buf, 1, len, stdout);
@@ -730,25 +708,24 @@ int ask() {
 }
 
 void draw_full_statusline(struct editor *ed) {
-  struct env *env = ed->env;
-  int namewidth = env->cols - 19;
-  printf(GOTO_LINE_COL, env->lines + 1, 1);
-  sprintf(env->linebuf, STATUS_COLOR "%*.*s%c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, -namewidth, namewidth, ed->filename, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
-  fputs(env->linebuf, stdout);
+  int namewidth = ed->cols - 19;
+  printf(GOTO_LINE_COL, ed->lines + 1, 1);
+  sprintf(ed->linebuf, STATUS_COLOR "%*.*s%c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, -namewidth, namewidth, ed->filename, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
+  fputs(ed->linebuf, stdout);
 }
 
 void draw_statusline(struct editor *ed) {
-  printf(GOTO_LINE_COL, ed->env->lines + 1, ed->env->cols - 18);
-  sprintf(ed->env->linebuf, STATUS_COLOR "%c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
-  fputs(ed->env->linebuf, stdout);
+  printf(GOTO_LINE_COL, ed->lines + 1, ed->cols - 18);
+  sprintf(ed->linebuf, STATUS_COLOR "%c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
+  fputs(ed->linebuf, stdout);
 }
 
 void display_line(struct editor *ed, int pos, int fullline) {
   int hilite = 0;
   int col = 0;
   int margin = ed->margin;
-  int maxcol = ed->env->cols + margin;
-  char *bufptr = ed->env->linebuf;
+  int maxcol = ed->cols + margin;
+  char *bufptr = ed->linebuf;
   char *p = text_ptr(ed, pos);
   int selstart, selend, ch;
   char *s;
@@ -815,7 +792,7 @@ void display_line(struct editor *ed, int pos, int fullline) {
     for (s = TEXT_COLOR; *s; s++) *bufptr++ = *s;
   }
 
-  fwrite(ed->env->linebuf, 1, bufptr - ed->env->linebuf, stdout);
+  fwrite(ed->linebuf, 1, bufptr - ed->linebuf, stdout);
 }
 
 void update_line(struct editor *ed) {
@@ -830,7 +807,7 @@ void draw_screen(struct editor *ed) {
   printf(GOTO_LINE_COL, 1, 1);
   fputs(TEXT_COLOR, stdout);
   pos = ed->toppos;
-  for (i = 0; i < ed->env->lines; i++) {
+  for (i = 0; i < ed->lines; i++) {
     if (pos < 0) {
       fputs(CLREOL "\r\n", stdout);
     } else {
@@ -858,7 +835,7 @@ void adjust(struct editor *ed) {
     ed->refresh = 1;
   }
 
-  while (ed->line >= ed->topline + ed->env->lines) {
+  while (ed->line >= ed->topline + ed->lines) {
     ed->toppos = next_line(ed, ed->toppos, 1);
     ed->topline++;
     ed->refresh = 1;
@@ -875,7 +852,7 @@ void adjust(struct editor *ed) {
     ed->refresh = 1;
   }
 
-  while (col - ed->margin >= ed->env->cols) {
+  while (col - ed->margin >= ed->cols) {
     ed->margin += 4;
     ed->refresh = 1;
   }
@@ -1062,7 +1039,7 @@ void newline(struct editor *ed) {
   
   ed->refresh = 1;
 
-  if (ed->line >= ed->topline + ed->env->lines) {
+  if (ed->line >= ed->topline + ed->lines) {
     ed->toppos = next_line(ed, ed->toppos, 1);
     ed->topline++;
     ed->refresh = 1;
@@ -1233,10 +1210,10 @@ void copy_selection_or_line(struct editor *ed) {
     if (f_sec) pclose(f_sec);
     if (f_clip) pclose(f_clip);
   } else {  
-    ed->env->clipsize = selend - selstart;
-    ed->env->clipboard = (char *) realloc(ed->env->clipboard, ed->env->clipsize);
-    if (!ed->env->clipboard) return;
-    copy(ed, ed->env->clipboard, selstart, ed->env->clipsize);
+    ed->clipsize = selend - selstart;
+    ed->clipboard = (char *) realloc(ed->clipboard, ed->clipsize);
+    if (!ed->clipboard) return;
+    copy(ed, ed->clipboard, selstart, ed->clipsize);
   }
 }
 
@@ -1263,8 +1240,8 @@ void paste_selection(struct editor *ed) {
     moveto(ed, pos, 0);
     pclose(f);
   } else {
-    insert(ed, ed->linepos + ed->col, ed->env->clipboard, ed->env->clipsize);
-    moveto(ed, ed->linepos + ed->col + ed->env->clipsize, 0);
+    insert(ed, ed->linepos + ed->col, ed->clipboard, ed->clipsize);
+    moveto(ed, ed->linepos + ed->col + ed->clipsize, 0);
   }
 
   ed->refresh = 1;
@@ -1317,7 +1294,7 @@ void find_text(struct editor *ed, char* search) {
         ed->refresh = 1;
         return;
       }    
-      search = strdup(ed->env->linebuf);
+      search = strdup(ed->linebuf);
     } else {
       search = malloc(selend - selstart);
       copy(ed, search, selstart, selend - selstart);
@@ -1350,7 +1327,7 @@ void goto_line(struct editor *ed, int lineno) {
 
   ed->anchor = -1;
   if (!lineno && prompt(ed, "Goto line: ", 1)) {
-    lineno = atoi(ed->env->linebuf);
+    lineno = atoi(ed->linebuf);
   }
 
   pos = 0;
@@ -1371,7 +1348,7 @@ void goto_line(struct editor *ed, int lineno) {
 void goto_anything(struct editor *ed, char *query) {
   if (!query) {
     prompt(ed, "Goto Anything: ", 1);
-    query = ed->env->linebuf;
+    query = ed->linebuf;
   }
 
   if (query[0] == ':') { goto_line(ed, atoi(query + 1)); }
@@ -1380,13 +1357,13 @@ void goto_anything(struct editor *ed, char *query) {
 }
 
 void redraw_screen(struct editor *ed) {
-  get_console_size(ed->env);
+  get_console_size(ed);
   draw_screen(ed);
 }
 
-int quit(struct env *env) {
-  if (env->ed->dirty) {
-    display_message(env->ed, "Close %s without saving changes (y/n)? ", env->ed->filename);
+int quit(struct editor *ed) {
+  if (ed->dirty) {
+    display_message(ed, "Close %s without saving changes (y/n)? ", ed->filename);
     if (!ask()) return 0;
   }
 
@@ -1496,23 +1473,21 @@ void edit(struct editor *ed) {
 //
 
 int main(int argc, char *argv[]) {
-  struct env env;
   sigset_t blocked_sigmask, orig_sigmask;
   struct termios tio;
   struct termios orig_tio;
 
-  memset(&env, 0, sizeof(env));
-	
-  env.ed = create_editor(&env);
+  struct editor *ed = (struct editor *) malloc(sizeof(struct editor));
+  memset(ed, 0, sizeof(struct editor));
 
   if (argc < 2) return 0;
 
-  if (load_file(env.ed, argv[1]) < 0) {
+  if (load_file(ed, argv[1]) < 0) {
     perror(argv[1]);
     return 0;
   }
 
-  if (argc >= 3) goto_anything(env.ed, argv[2]);
+  if (argc >= 3) goto_anything(ed, argv[2]);
 
   setvbuf(stdout, NULL, 0, 8192);
 
@@ -1526,7 +1501,7 @@ int main(int argc, char *argv[]) {
     fputs("\033]50;CursorShape=2\a", stdout);  // KDE
   }
 
-  get_console_size(&env);
+  get_console_size(ed);
   sigemptyset(&blocked_sigmask);
   sigaddset(&blocked_sigmask, SIGINT);
   sigaddset(&blocked_sigmask, SIGTSTP);
@@ -1534,19 +1509,19 @@ int main(int argc, char *argv[]) {
   sigprocmask(SIG_BLOCK, &blocked_sigmask, &orig_sigmask);
 
   for (;;) {
-    if (!env.ed) break;
-    edit(env.ed);
-    if (quit(&env)) break;
+    if (!ed) break;
+    edit(ed);
+    if (quit(ed)) break;
   }
 
-  printf(GOTO_LINE_COL, env.lines + 2, 1);
+  printf(GOTO_LINE_COL, ed->lines + 2, 1);
   fputs(RESET_COLOR CLREOL, stdout);
   tcsetattr(0, TCSANOW, &orig_tio);   
 
-  delete_editor(env.ed);
-
-  if (env.clipboard) free(env.clipboard);
-  if (env.linebuf) free(env.linebuf);
+  if (ed->start) free(ed->start);
+  if (ed->clipboard) free(ed->clipboard);
+  if (ed->linebuf) free(ed->linebuf);
+  free(ed);
 
   setbuf(stdout, NULL);
   sigprocmask(SIG_SETMASK, &orig_sigmask, NULL);
