@@ -972,8 +972,10 @@ void unindent(struct editor *ed, char *indentation) {
   char *buffer, *p;
   int width = strlen(indentation);
   int pos = ed->linepos + ed->col;
-  exit(1);
-  if (!get_selection(ed, &start, &end)) return;
+  if (!get_selection(ed, &start, &end)) {
+    start = ed->linepos;
+    end = ed->linepos + line_length(ed, ed->linepos);
+  }
 
   buffer = malloc(end - start);
   if (!buffer) return;
