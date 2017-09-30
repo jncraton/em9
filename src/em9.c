@@ -31,12 +31,7 @@ int linux_console = 0;
 
 enum key_codes {KEY_BACKSPACE = 0x1008, KEY_ESC, KEY_INS, KEY_DEL, KEY_LEFT, 
   KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_HOME, KEY_END, KEY_ENTER, KEY_TAB,
-  KEY_PGUP, KEY_PGDN, KEY_F3, KEY_UNKNOWN, 
-  KEY_SHIFT_LEFT, KEY_SHIFT_RIGHT, KEY_SHIFT_UP, KEY_SHIFT_DOWN,
-  KEY_SHIFT_PGUP, KEY_SHIFT_PGDN, KEY_SHIFT_HOME, KEY_SHIFT_END, 
-  KEY_SHIFT_CTRL_LEFT, KEY_SHIFT_CTRL_RIGHT, 
-  KEY_SHIFT_CTRL_UP, KEY_SHIFT_CTRL_DOWN, KEY_SHIFT_CTRL_HOME,
-  KEY_SHIFT_CTRL_END};
+  KEY_PGUP, KEY_PGDN, KEY_F3, KEY_UNKNOWN};
 
 #define ctrl(c) ((c) - 0x60)
 #define shift(c) ((c) + 0x1000)
@@ -413,10 +408,7 @@ enum key_codes get_key() {
                 ch = getchar();
                 break;
               case 0x7E:
-                if (shift && ctrl) return KEY_SHIFT_CTRL_HOME;
-                if (shift) return KEY_SHIFT_HOME;
-                if (ctrl) return ctrl(KEY_HOME);
-                return KEY_HOME;
+                return add_modifiers(KEY_HOME, shift, ctrl);
               default:
                 return KEY_UNKNOWN;
             }
@@ -425,56 +417,30 @@ enum key_codes get_key() {
           switch (ch) {
             case 0x31: 
               if (getchar() != 0x7E) return KEY_UNKNOWN;
-              if (shift && ctrl) return KEY_SHIFT_CTRL_HOME;
-              if (shift) return KEY_SHIFT_HOME;
-              if (ctrl) return ctrl(KEY_HOME);
-              return KEY_HOME;
+              return add_modifiers(KEY_HOME, shift, ctrl);
             case 0x32: return getchar() == 0x7E ? KEY_INS : KEY_UNKNOWN;
             case 0x33: return getchar() == 0x7E ? KEY_DEL : KEY_UNKNOWN;
             case 0x34:
               if (getchar() != 0x7E) return KEY_UNKNOWN;
-              if (shift && ctrl) return KEY_SHIFT_CTRL_END;
-              if (shift) return KEY_SHIFT_END;
-              if (ctrl) return ctrl(KEY_END);
-              return KEY_END;
+              return add_modifiers(KEY_END, shift, ctrl);
             case 0x35:
               if (getchar() != 0x7E) return KEY_UNKNOWN;
-              if (shift) return KEY_SHIFT_PGUP;
-              return KEY_PGUP;
+              return add_modifiers(KEY_PGUP, shift, 0);
             case 0x36:
               if (getchar() != 0x7E) return KEY_UNKNOWN;
-              if (shift) return KEY_SHIFT_PGDN;
-              return KEY_PGDN;
+              return add_modifiers(KEY_PGDN, shift, 0);
             case 0x41: 
-              if (shift && ctrl) return KEY_SHIFT_CTRL_UP;
-              if (shift) return KEY_SHIFT_UP;
-              if (ctrl) return ctrl(KEY_UP);
-              return KEY_UP;
+              return add_modifiers(KEY_UP, shift, ctrl);
             case 0x42: 
-              if (shift && ctrl) return KEY_SHIFT_CTRL_DOWN;
-              if (shift) return KEY_SHIFT_DOWN;
-              if (ctrl) return ctrl(KEY_DOWN);
-              return KEY_DOWN;
+              return add_modifiers(KEY_DOWN, shift, ctrl);
             case 0x43: 
-              if (shift && ctrl) return KEY_SHIFT_CTRL_RIGHT;
-              if (shift) return KEY_SHIFT_RIGHT;
-              if (ctrl) return ctrl(KEY_RIGHT);
-              return KEY_RIGHT;
+              return add_modifiers(KEY_RIGHT, shift, ctrl);
             case 0x44:
-              if (shift && ctrl) return KEY_SHIFT_CTRL_LEFT;
-              if (shift) return KEY_SHIFT_LEFT;
-              if (ctrl) return ctrl(KEY_LEFT);
-              return KEY_LEFT;
+              return add_modifiers(KEY_LEFT, shift, ctrl);
             case 0x46:
-              if (shift && ctrl) return KEY_SHIFT_CTRL_END;
-              if (shift) return KEY_SHIFT_END;
-              if (ctrl) return ctrl(KEY_END);
-              return KEY_END;
+              return add_modifiers(KEY_END, shift, ctrl);
             case 0x48:
-              if (shift && ctrl) return KEY_SHIFT_CTRL_HOME;
-              if (shift) return KEY_SHIFT_HOME;
-              if (ctrl) return ctrl(KEY_HOME);
-              return KEY_HOME;
+              return add_modifiers(KEY_HOME, shift, ctrl);
             case 0x5A: 
               return shift(KEY_TAB);
             case 0x5B:
@@ -515,20 +481,20 @@ enum key_codes get_key() {
         case 0x8D: return ctrl(KEY_UP);
         case 0x91: return ctrl(KEY_DOWN);
         case 0x94: return ctrl(KEY_TAB);
-        case 0xB8: return KEY_SHIFT_UP;
-        case 0xB7: return KEY_SHIFT_HOME;
-        case 0xBF: return KEY_SHIFT_END;
-        case 0xB9: return KEY_SHIFT_PGUP;
-        case 0xBB: return KEY_SHIFT_LEFT;
-        case 0xBD: return KEY_SHIFT_RIGHT;
-        case 0xC0: return KEY_SHIFT_DOWN;
-        case 0xC1: return KEY_SHIFT_PGDN;
-        case 0xDB: return KEY_SHIFT_CTRL_LEFT;
-        case 0xDD: return KEY_SHIFT_CTRL_RIGHT;
-        case 0xD8: return KEY_SHIFT_CTRL_UP;
-        case 0xE0: return KEY_SHIFT_CTRL_DOWN;
-        case 0xD7: return KEY_SHIFT_CTRL_HOME;
-        case 0xDF: return KEY_SHIFT_CTRL_END;
+        case 0xB8: return shift(KEY_UP);
+        case 0xB7: return shift(KEY_HOME);
+        case 0xBF: return shift(KEY_END);
+        case 0xB9: return shift(KEY_PGUP);
+        case 0xBB: return shift(KEY_LEFT);
+        case 0xBD: return shift(KEY_RIGHT);
+        case 0xC0: return shift(KEY_DOWN);
+        case 0xC1: return shift(KEY_PGDN);
+        case 0xDB: return shift(ctrl(KEY_LEFT));
+        case 0xDD: return shift(ctrl(KEY_RIGHT));
+        case 0xD8: return shift(ctrl(KEY_UP));
+        case 0xE0: return shift(ctrl(KEY_DOWN));
+        case 0xD7: return shift(ctrl(KEY_HOME));
+        case 0xDF: return shift(ctrl(KEY_END));
 
         default: return KEY_UNKNOWN;
       }
@@ -1287,19 +1253,19 @@ void edit(struct editor *ed) {
         case ctrl(KEY_HOME): goto_line(ed, 1); break;
         case ctrl(KEY_END): goto_line(ed, -1); break;
 
-        case KEY_SHIFT_UP: down(ed, 1, -1); break;
-        case KEY_SHIFT_DOWN: down(ed, 1, 1); break;
-        case KEY_SHIFT_LEFT: left(ed, 1); break;
-        case KEY_SHIFT_RIGHT: right(ed, 1); break;
-        case KEY_SHIFT_PGUP: down(ed, 1, -PAGESIZE); break;
-        case KEY_SHIFT_PGDN: down(ed, 1, PAGESIZE); break;
-        case KEY_SHIFT_HOME: home(ed, 1); break;
-        case KEY_SHIFT_END: end(ed, 1); break;
+        case shift(KEY_UP): down(ed, 1, -1); break;
+        case shift(KEY_DOWN): down(ed, 1, 1); break;
+        case shift(KEY_LEFT): left(ed, 1); break;
+        case shift(KEY_RIGHT): right(ed, 1); break;
+        case shift(KEY_PGUP): down(ed, 1, -PAGESIZE); break;
+        case shift(KEY_PGDN): down(ed, 1, PAGESIZE); break;
+        case shift(KEY_HOME): home(ed, 1); break;
+        case shift(KEY_END): end(ed, 1); break;
 
-        case KEY_SHIFT_CTRL_RIGHT: wordright(ed, 1); break;
-        case KEY_SHIFT_CTRL_LEFT: wordleft(ed, 1); break;
-        case KEY_SHIFT_CTRL_HOME: goto_line(ed, 1); break;
-        case KEY_SHIFT_CTRL_END: goto_line(ed, -1); break;
+        case shift(ctrl(KEY_RIGHT)): wordright(ed, 1); break;
+        case shift(ctrl(KEY_LEFT)): wordleft(ed, 1); break;
+        case shift(ctrl(KEY_HOME)): goto_line(ed, 1); break;
+        case shift(ctrl(KEY_END)): goto_line(ed, -1); break;
 
         case ctrl('a'): select_all(ed); break;
         case ctrl('d'): duplicate_selection_or_line(ed); break;
