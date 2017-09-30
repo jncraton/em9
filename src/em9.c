@@ -29,10 +29,10 @@ int linux_console = 0;
 #define SELECT_COLOR   "\033[7m\033[1m"
 #define STATUS_COLOR   "\033[1m\033[7m"
 
-enum key_codes {KEY_BACKSPACE = 0x108, KEY_ESC,KEY_INS, KEY_DEL, KEY_LEFT, 
+enum key_codes {KEY_BACKSPACE = 0x108, KEY_ESC, KEY_INS, KEY_DEL, KEY_LEFT, 
   KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_HOME, KEY_END, KEY_ENTER, KEY_TAB,
-  KEY_PGUP, KEY_PGDN, KEY_CTRL_UP,
-  KEY_CTRL_DOWN, KEY_CTRL_HOME, KEY_CTRL_END, KEY_CTRL_TAB,
+  KEY_PGUP, KEY_PGDN, 
+  KEY_CTRL_HOME, KEY_CTRL_END, KEY_CTRL_TAB,
   KEY_SHIFT_LEFT, KEY_SHIFT_RIGHT, KEY_SHIFT_UP, KEY_SHIFT_DOWN,
   KEY_SHIFT_PGUP, KEY_SHIFT_PGDN, KEY_SHIFT_HOME, KEY_SHIFT_END, 
   KEY_SHIFT_TAB, KEY_SHIFT_CTRL_LEFT, KEY_SHIFT_CTRL_RIGHT, 
@@ -443,12 +443,12 @@ enum key_codes get_key() {
             case 0x41: 
               if (shift && ctrl) return KEY_SHIFT_CTRL_UP;
               if (shift) return KEY_SHIFT_UP;
-              if (ctrl) return KEY_CTRL_UP;
+              if (ctrl) return ctrl(KEY_UP);
               return KEY_UP;
             case 0x42: 
               if (shift && ctrl) return KEY_SHIFT_CTRL_DOWN;
               if (shift) return KEY_SHIFT_DOWN;
-              if (ctrl) return KEY_CTRL_DOWN;
+              if (ctrl) return ctrl(KEY_DOWN);
               return KEY_DOWN;
             case 0x43: 
               if (shift && ctrl) return KEY_SHIFT_CTRL_RIGHT;
@@ -507,8 +507,8 @@ enum key_codes get_key() {
         case 0x74: return ctrl(KEY_RIGHT);
         case 0x75: return KEY_CTRL_END;
         case 0x77: return KEY_CTRL_HOME;
-        case 0x8D: return KEY_CTRL_UP;
-        case 0x91: return KEY_CTRL_DOWN;
+        case 0x8D: return ctrl(KEY_UP);
+        case 0x91: return ctrl(KEY_DOWN);
         case 0x94: return KEY_CTRL_TAB;
         case 0xB8: return KEY_SHIFT_UP;
         case 0xB7: return KEY_SHIFT_HOME;
@@ -1274,6 +1274,8 @@ void edit(struct editor *ed) {
         case KEY_END: end(ed, 0); break;
         case KEY_PGUP: down(ed, 0, -PAGESIZE); break;
         case KEY_PGDN: down(ed, 0, PAGESIZE); break;
+        case ctrl(KEY_UP): down(ed, 0, -PAGESIZE); break;
+        case ctrl(KEY_DOWN): down(ed, 0, PAGESIZE); break;
 
         case ctrl(KEY_RIGHT): wordright(ed, 0); break;
         case ctrl(KEY_LEFT): wordleft(ed, 0); break;
