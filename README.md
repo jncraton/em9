@@ -32,3 +32,7 @@ Don't use em9. It is a text editor, not an IDE or project management tool. You c
 
 1. Use `command | xsel` to get the output in the clipboard.
 2. Open the file with em9 and paste away.
+
+## Open a file to a specific line
+
+Invoke as `em9 [filename] :linenumber` e.g. `em9 README.md :10`.
