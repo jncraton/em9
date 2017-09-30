@@ -145,7 +145,7 @@ void replace(struct editor *ed, int pos, int len, char *buf, int bufsize) {
 }
 
 int get(struct editor *ed, int pos) {
-  if (pos > strlen(ed->content)) return -1;
+  if (pos >= strlen(ed->content)) return -1;
   return ed->content[pos];
 }
 
@@ -626,7 +626,7 @@ void display_line(struct editor *ed, int pos, int fullline) {
 
     if (p == ed->content + MAXSIZE) break;
     ch = *p;
-    if (ch == '\r' || ch == '\n') break;
+    if (ch == '\r' || ch == '\n' || ch == 0) break;
 
     if (ch == '\t') {
       int spaces = TABSIZE - col % TABSIZE;
