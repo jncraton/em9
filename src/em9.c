@@ -34,7 +34,7 @@ enum key_codes {KEY_BACKSPACE = 0x1008, KEY_ESC, KEY_INS, KEY_DEL, KEY_LEFT,
   KEY_PGUP, KEY_PGDN, KEY_F3, KEY_UNKNOWN, 
   KEY_SHIFT_LEFT, KEY_SHIFT_RIGHT, KEY_SHIFT_UP, KEY_SHIFT_DOWN,
   KEY_SHIFT_PGUP, KEY_SHIFT_PGDN, KEY_SHIFT_HOME, KEY_SHIFT_END, 
-  KEY_SHIFT_TAB, KEY_SHIFT_CTRL_LEFT, KEY_SHIFT_CTRL_RIGHT, 
+  KEY_SHIFT_CTRL_LEFT, KEY_SHIFT_CTRL_RIGHT, 
   KEY_SHIFT_CTRL_UP, KEY_SHIFT_CTRL_DOWN, KEY_SHIFT_CTRL_HOME,
   KEY_SHIFT_CTRL_END};
 
@@ -365,6 +365,13 @@ void get_modifier_keys(int *shift, int *ctrl) {
     }
   }
 }
+
+int add_modifiers(int key, int shift, int ctrl) {
+  if (shift) key = shift(key);
+  if (ctrl) key = ctrl(key);
+  return key;
+}
+
 enum key_codes get_key() {
   int ch, shift, ctrl;
 
@@ -375,9 +382,7 @@ enum key_codes get_key() {
     case 0x08: return KEY_BACKSPACE;
     case 0x09:
       get_modifier_keys(&shift, &ctrl);
-      if (shift) return KEY_SHIFT_TAB;
-      if (ctrl) return ctrl(KEY_TAB);
-      return KEY_TAB;
+      return add_modifiers(KEY_TAB, shift, ctrl);
     case 0x0D: return KEY_ENTER;
     case 0x0A: return KEY_ENTER;
     case 0x1B:
@@ -471,7 +476,7 @@ enum key_codes get_key() {
               if (ctrl) return ctrl(KEY_HOME);
               return KEY_HOME;
             case 0x5A: 
-              return KEY_SHIFT_TAB;
+              return shift(KEY_TAB);
             case 0x5B:
               ch = getchar();
               switch (ch) {
@@ -491,7 +496,7 @@ enum key_codes get_key() {
     case 0xE0:
       ch = getchar();
       switch (ch) {
-        case 0x0F: return KEY_SHIFT_TAB;
+        case 0x0F: return shift(KEY_TAB);
         case 0x3D: return KEY_F3;
         case 0x47: return KEY_HOME;
         case 0x48: return KEY_UP;
@@ -1001,7 +1006,7 @@ void unindent(struct editor *ed, char *indentation) {
   char *buffer, *p;
   int width = strlen(indentation);
   int pos = ed->linepos + ed->col;
-
+  exit(1);
   if (!get_selection(ed, &start, &end)) return;
 
   buffer = malloc(end - start);
@@ -1308,7 +1313,7 @@ void edit(struct editor *ed) {
         case ctrl('o'): done = 1; break;
         case ctrl('n'): done = 1; break;
         case KEY_TAB: indent(ed, INDENT); break;
-        case KEY_SHIFT_TAB: unindent(ed, INDENT); break;
+        case shift(KEY_TAB): unindent(ed, INDENT); break;
 
         case KEY_ENTER: newline(ed); break;
         case KEY_BACKSPACE: backspace(ed); break;
