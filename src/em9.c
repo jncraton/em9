@@ -29,17 +29,17 @@ int linux_console = 0;
 #define SELECT_COLOR   "\033[7m\033[1m"
 #define STATUS_COLOR   "\033[1m\033[7m"
 
-enum key_codes {KEY_BACKSPACE = 0x108, KEY_ESC, KEY_INS, KEY_DEL, KEY_LEFT, 
+enum key_codes {KEY_BACKSPACE = 0x1008, KEY_ESC, KEY_INS, KEY_DEL, KEY_LEFT, 
   KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_HOME, KEY_END, KEY_ENTER, KEY_TAB,
-  KEY_PGUP, KEY_PGDN, 
-  KEY_CTRL_HOME, KEY_CTRL_END, KEY_CTRL_TAB,
+  KEY_PGUP, KEY_PGDN, KEY_F3, KEY_UNKNOWN, 
   KEY_SHIFT_LEFT, KEY_SHIFT_RIGHT, KEY_SHIFT_UP, KEY_SHIFT_DOWN,
   KEY_SHIFT_PGUP, KEY_SHIFT_PGDN, KEY_SHIFT_HOME, KEY_SHIFT_END, 
   KEY_SHIFT_TAB, KEY_SHIFT_CTRL_LEFT, KEY_SHIFT_CTRL_RIGHT, 
   KEY_SHIFT_CTRL_UP, KEY_SHIFT_CTRL_DOWN, KEY_SHIFT_CTRL_HOME,
-  KEY_SHIFT_CTRL_END, KEY_F3, KEY_UNKNOWN};
+  KEY_SHIFT_CTRL_END};
 
 #define ctrl(c) ((c) - 0x60)
+#define shift(c) ((c) + 0x1000)
 
 struct editor {
   char *clipboard;
@@ -376,7 +376,7 @@ enum key_codes get_key() {
     case 0x09:
       get_modifier_keys(&shift, &ctrl);
       if (shift) return KEY_SHIFT_TAB;
-      if (ctrl) return KEY_CTRL_TAB;
+      if (ctrl) return ctrl(KEY_TAB);
       return KEY_TAB;
     case 0x0D: return KEY_ENTER;
     case 0x0A: return KEY_ENTER;
@@ -410,7 +410,7 @@ enum key_codes get_key() {
               case 0x7E:
                 if (shift && ctrl) return KEY_SHIFT_CTRL_HOME;
                 if (shift) return KEY_SHIFT_HOME;
-                if (ctrl) return KEY_CTRL_HOME;
+                if (ctrl) return ctrl(KEY_HOME);
                 return KEY_HOME;
               default:
                 return KEY_UNKNOWN;
@@ -422,7 +422,7 @@ enum key_codes get_key() {
               if (getchar() != 0x7E) return KEY_UNKNOWN;
               if (shift && ctrl) return KEY_SHIFT_CTRL_HOME;
               if (shift) return KEY_SHIFT_HOME;
-              if (ctrl) return KEY_CTRL_HOME;
+              if (ctrl) return ctrl(KEY_HOME);
               return KEY_HOME;
             case 0x32: return getchar() == 0x7E ? KEY_INS : KEY_UNKNOWN;
             case 0x33: return getchar() == 0x7E ? KEY_DEL : KEY_UNKNOWN;
@@ -430,7 +430,7 @@ enum key_codes get_key() {
               if (getchar() != 0x7E) return KEY_UNKNOWN;
               if (shift && ctrl) return KEY_SHIFT_CTRL_END;
               if (shift) return KEY_SHIFT_END;
-              if (ctrl) return KEY_CTRL_END;
+              if (ctrl) return ctrl(KEY_END);
               return KEY_END;
             case 0x35:
               if (getchar() != 0x7E) return KEY_UNKNOWN;
@@ -463,12 +463,12 @@ enum key_codes get_key() {
             case 0x46:
               if (shift && ctrl) return KEY_SHIFT_CTRL_END;
               if (shift) return KEY_SHIFT_END;
-              if (ctrl) return KEY_CTRL_END;
+              if (ctrl) return ctrl(KEY_END);
               return KEY_END;
             case 0x48:
               if (shift && ctrl) return KEY_SHIFT_CTRL_HOME;
               if (shift) return KEY_SHIFT_HOME;
-              if (ctrl) return KEY_CTRL_HOME;
+              if (ctrl) return ctrl(KEY_HOME);
               return KEY_HOME;
             case 0x5A: 
               return KEY_SHIFT_TAB;
@@ -505,11 +505,11 @@ enum key_codes get_key() {
         case 0x53: return KEY_DEL;
         case 0x73: return ctrl(KEY_LEFT);
         case 0x74: return ctrl(KEY_RIGHT);
-        case 0x75: return KEY_CTRL_END;
-        case 0x77: return KEY_CTRL_HOME;
+        case 0x75: return ctrl(KEY_END);
+        case 0x77: return ctrl(KEY_HOME);
         case 0x8D: return ctrl(KEY_UP);
         case 0x91: return ctrl(KEY_DOWN);
-        case 0x94: return KEY_CTRL_TAB;
+        case 0x94: return ctrl(KEY_TAB);
         case 0xB8: return KEY_SHIFT_UP;
         case 0xB7: return KEY_SHIFT_HOME;
         case 0xBF: return KEY_SHIFT_END;
@@ -1279,8 +1279,8 @@ void edit(struct editor *ed) {
 
         case ctrl(KEY_RIGHT): wordright(ed, 0); break;
         case ctrl(KEY_LEFT): wordleft(ed, 0); break;
-        case KEY_CTRL_HOME: goto_line(ed, 1); break;
-        case KEY_CTRL_END: goto_line(ed, -1); break;
+        case ctrl(KEY_HOME): goto_line(ed, 1); break;
+        case ctrl(KEY_END): goto_line(ed, -1); break;
 
         case KEY_SHIFT_UP: down(ed, 1, -1); break;
         case KEY_SHIFT_DOWN: down(ed, 1, 1); break;
