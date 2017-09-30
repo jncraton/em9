@@ -134,7 +134,7 @@ void insert(struct editor *ed, int pos, char *buf, int bufsize) {
 }
 
 void erase(struct editor *ed, int pos, int len) {
-  memmove(ed->content + pos, ed->content + pos + len, strlen(ed->content + pos + len));
+  memmove(ed->content + pos, ed->content + pos + len, strlen(ed->content + pos + len) + 1);
   ed->dirty=1;
 }
 
@@ -661,9 +661,7 @@ void display_line(struct editor *ed, int pos, int fullline) {
     if (col == margin) *bufptr++ = ' ';
   }
 
-  if (col < maxcol) {
-    for (s = CLREOL; *s; s++) *bufptr++ = *s;
-  }
+  for (s = CLREOL; *s; s++) *bufptr++ = *s;
 
   if (fullline) {
     memcpy(bufptr, "\r\n", 2);
