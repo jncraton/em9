@@ -661,7 +661,9 @@ void display_line(struct editor *ed, int pos, int fullline) {
     if (col == margin) *bufptr++ = ' ';
   }
 
-  for (s = CLREOL; *s; s++) *bufptr++ = *s;
+  if (col < maxcol) {
+    for (s = CLREOL; *s; s++) *bufptr++ = *s;
+  }
 
   if (fullline) {
     memcpy(bufptr, "\r\n", 2);
