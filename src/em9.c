@@ -740,30 +740,23 @@ void adjust(struct editor *ed) {
   }
 }
 
-void up(struct editor *ed, int select) {
-  int newpos;
-  
-  update_selection(ed, select);
-
-  newpos = next_line(ed, ed->linepos, -1);
-  if (newpos < 0) return;
-
-  ed->linepos = newpos;
-  ed->line--;
-
-  adjust(ed);
+int sign(int x) {
+  return (x > 0) - (x < 0);
 }
 
-void down(struct editor *ed, int select) {
-  int newpos;
-  
+void down(struct editor *ed, int select, int lines) {
+  int newpos, i;
+  int dir = sign(lines);
+
   update_selection(ed, select);
 
-  newpos = next_line(ed, ed->linepos, 1);
-  if (newpos < 0) return;
-
-  ed->linepos = newpos;
-  ed->line++;
+  for (i = 0; i < lines * dir; i++) {
+    newpos = next_line(ed, ed->linepos, dir);
+    if (newpos < 0) break;
+  
+    ed->linepos = newpos;
+    ed->line += dir;
+  }
 
   adjust(ed);
 }
@@ -871,18 +864,6 @@ void end(struct editor *ed, int select) {
   update_selection(ed, select);
   ed->col = ed->lastcol = line_length(ed, ed->linepos);
   adjust(ed);
-}
-
-void pageup(struct editor *ed, int select) {
-  int i;
-
-  for (i = 0; i < PAGESIZE; i++) up(ed, select);
-}
-
-void pagedown(struct editor *ed, int select) {
-  int i;
-
-  for (i = 0; i < PAGESIZE; i++) down(ed, select);
 }
 
 //
@@ -1285,26 +1266,26 @@ void edit(struct editor *ed) {
         case ctrl('t'): goto_line(ed, 1); break;
         case ctrl('b'): goto_line(ed, -1); break;
 
-        case KEY_UP: up(ed, 0); break;
-        case KEY_DOWN: down(ed, 0); break;
+        case KEY_UP: down(ed, 0, -1); break;
+        case KEY_DOWN: down(ed, 0, 1); break;
         case KEY_LEFT: left(ed, 0); break;
         case KEY_RIGHT: right(ed, 0); break;
         case KEY_HOME: home(ed, 0); break;
         case KEY_END: end(ed, 0); break;
-        case KEY_PGUP: pageup(ed, 0); break;
-        case KEY_PGDN: pagedown(ed, 0); break;
+        case KEY_PGUP: down(ed, 0, -PAGESIZE); break;
+        case KEY_PGDN: down(ed, 0, PAGESIZE); break;
 
         case ctrl(KEY_RIGHT): wordright(ed, 0); break;
         case ctrl(KEY_LEFT): wordleft(ed, 0); break;
         case KEY_CTRL_HOME: goto_line(ed, 1); break;
         case KEY_CTRL_END: goto_line(ed, -1); break;
 
-        case KEY_SHIFT_UP: up(ed, 1); break;
-        case KEY_SHIFT_DOWN: down(ed, 1); break;
+        case KEY_SHIFT_UP: down(ed, 1, -1); break;
+        case KEY_SHIFT_DOWN: down(ed, 1, 1); break;
         case KEY_SHIFT_LEFT: left(ed, 1); break;
         case KEY_SHIFT_RIGHT: right(ed, 1); break;
-        case KEY_SHIFT_PGUP: pageup(ed, 1); break;
-        case KEY_SHIFT_PGDN: pagedown(ed, 1); break;
+        case KEY_SHIFT_PGUP: down(ed, 1, -PAGESIZE); break;
+        case KEY_SHIFT_PGDN: down(ed, 1, PAGESIZE); break;
         case KEY_SHIFT_HOME: home(ed, 1); break;
         case KEY_SHIFT_END: end(ed, 1); break;
 
