@@ -109,7 +109,7 @@ int save_file(struct editor *ed) {
   f = open(ed->filename, O_CREAT | O_TRUNC | O_WRONLY, ed->permissions);
   if (f < 0) return -1;
 
-  if (write(f, ed->content, strlen(ed->content)) != strlen(ed->content)) goto err;
+  if (write(f, ed->content, strlen(ed->content)) != (int) strlen(ed->content)) goto err;
 
   close(f);
   ed->dirty = 0;
@@ -140,7 +140,7 @@ void replace(struct editor *ed, int pos, int len, char *buf, int bufsize) {
 }
 
 int get(struct editor *ed, int pos) {
-  if (pos >= strlen(ed->content)) return -1;
+  if (pos >= (int) strlen(ed->content)) return -1;
   return ed->content[pos];
 }
 
@@ -797,11 +797,11 @@ void wordleft(struct editor *ed, int select) {
 }
 
 void wordright(struct editor *ed, int select) {
-  int pos, end, phase, next;
+  int pos, end, next, phase;
   
   update_selection(ed, select);
   pos = ed->linepos + ed->col;
-  end = ed->content + MAXSIZE;
+  end = (int64_t) ed->content + MAXSIZE;
   next = next_line(ed, ed->linepos, 1);
   phase = 0;
   while (pos < end) {
