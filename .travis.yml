@@ -3,4 +3,4 @@ install:
   - sudo apt-get install expect
 script: 
   - make
-  - expect test
+  - make test

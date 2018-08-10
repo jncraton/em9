@@ -15,6 +15,9 @@ release: src/em9.c
 	strip --strip-all em9
 	du -b em9
 
+test: em9
+	expect test
+
 install: src/em9.c
 	gcc -O3 src/em9.c -o em9
 	mv em9 /usr/local/bin/	

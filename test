@@ -5,7 +5,7 @@
 
 set timeout 1
 
-spawn "./em9"
+spawn "./em9" README.md
 
 send "my test string"
 
