@@ -1,0 +1,30 @@
+#!/usr/bin/expect
+
+# Very basic test script. Ensures that the program opens in a timely manner 
+# and echoes entered text.
+
+set timeout 5
+
+spawn "./em9" test/1.txt
+
+expect {
+  timeout {
+    close
+    exit 1
+  }
+  "Col 1" {
+    send_user "Successful first draw\n"
+    send "my test string"
+  }
+}
+
+expect {
+  "my test string" {
+    send_user "\nEntered string echoed\n"
+    # Ctrl+s
+    send "\x13"
+    sleep .1
+    # Ctrl+q
+    send "\x11"
+  }
+}

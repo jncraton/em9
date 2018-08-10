@@ -16,7 +16,11 @@ release: src/em9.c
 	du -b em9
 
 test: em9
-	expect test
+	rm -f test/1.txt
+	touch test/1.txt
+	expect test/1
+	cmp -s test/1.txt test/output1.txt
+	rm -f test/1.txt
 
 install: src/em9.c
 	gcc -O3 src/em9.c -o em9
