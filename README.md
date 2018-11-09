@@ -1,8 +1,6 @@
 # em9
 
-[![Build Status](https://travis-
-ci.org/jncraton/em9.svg?branch=master)](https://travis-
-ci.org/jncraton/em9)
+[![Build Status](https://travis-ci.org/jncraton/em9.svg?branch=master)](https://travis-ci.org/jncraton/em9)
 
 A simple text editor using modern GUI keybindings. The name "nano" was
 already taken, so I went with em9 (E to the minus 9).
