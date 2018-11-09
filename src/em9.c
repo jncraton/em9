@@ -1277,6 +1277,7 @@ void edit(struct editor *ed) {
         case KEY_ENTER: newline(ed); break;
         case KEY_BACKSPACE: backspace(ed); break;
         case KEY_DEL: del(ed); break;
+        case ctrl('k'): erase_selection_or_line(ed); break;
         case ctrl('x'): cut_selection_or_line(ed); break;
         case ctrl('v'): paste_selection(ed); break;
         case ctrl('s'): save_editor(ed); break;
