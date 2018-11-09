@@ -1196,15 +1196,6 @@ void redraw_screen(struct editor *ed) {
   draw_screen(ed);
 }
 
-int quit(struct editor *ed) {
-  if (ed->dirty) {
-    display_message(ed, "Close %s without saving changes (y/n)? ", ed->filename);
-    if (!ask()) return 0;
-  }
-
-  return 1;
-}
-
 //
 // Editor
 //
@@ -1334,11 +1325,7 @@ int main(int argc, char *argv[]) {
   sigaddset(&blocked_sigmask, SIGABRT);
   sigprocmask(SIG_BLOCK, &blocked_sigmask, &orig_sigmask);
 
-  for (;;) {
-    if (!ed) break;
-    edit(ed);
-    if (quit(ed)) break;
-  }
+  if (ed) { edit(ed); }
 
   printf(GOTO_LINE_COL, ed->lines + 2, 1);
   fputs(RESET_COLOR CLREOL, stdout);
