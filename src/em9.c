@@ -122,7 +122,7 @@ err:
 
 void insert(struct editor *ed, int pos, char *buf, int bufsize) {
   // Slide the following text over
-  memmove(ed->content + pos + bufsize, ed->content + pos, strlen(ed->content + pos));
+  memmove(ed->content + pos + bufsize, ed->content + pos, strlen(ed->content + pos)+1);
   // Overwrite the gap with new text
   memcpy(ed->content + pos, buf, bufsize);
   ed->dirty=1;
