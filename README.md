@@ -28,11 +28,11 @@ are some example operations.
 
 Don't use em9. I'd recommend `sed -i s/needle/replacement/`
 
-## Appending content from a shell command
+## Append content from a shell command
 
 Don't use em9. Use `command >> file`.
 
-## Finding a file in a project
+## Find a file in a project
 
 Don't use em9. It is a text editor, not an IDE or project management
 tool. You could use:
@@ -41,7 +41,7 @@ tool. You could use:
 
 - `git grep {text}` nding a file in a project
 
-## Inserting content from a shell command
+## Insert content from a shell command
 
 1. Use `command | xsel` to get the output in the clipboard.
 
