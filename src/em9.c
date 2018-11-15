@@ -1314,9 +1314,6 @@ int main(int argc, char *argv[]) {
   tcsetattr(0, TCSANOW, &tio);
   if (getenv("TERM") && strcmp(getenv("TERM"), "linux") == 0) {
     linux_console = 1;
-  } else {
-    fputs("\033[3 q", stdout);  // xterm
-    fputs("\033]50;CursorShape=2\a", stdout);  // KDE
   }
 
   get_console_size(ed);
