@@ -1312,9 +1312,7 @@ int main(int argc, char *argv[]) {
   tcgetattr(0, &orig_tio);
   cfmakeraw(&tio);  
   tcsetattr(0, TCSANOW, &tio);
-  if (getenv("TERM") && strcmp(getenv("TERM"), "linux") == 0) {
-    linux_console = 1;
-  }
+  linux_console = getenv("TERM") && !strcmp(getenv("TERM"), "linux");
 
   get_console_size(ed);
   sigemptyset(&blocked_sigmask);
