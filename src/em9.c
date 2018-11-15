@@ -14,7 +14,7 @@
 int linux_console = 0;
 
 #define MAXSIZE      32768
-#define LINEBUF_EXTRA  32
+#define LINEBUF      512
 
 #define TABSIZE        2
 #define PAGESIZE       20
@@ -37,15 +37,10 @@ enum key_codes {KEY_BACKSPACE = 0x1008, KEY_ESC, KEY_INS, KEY_DEL, KEY_LEFT,
 #define shift(c) ((c) + 0x1000)
 
 struct editor {
-  char *clipboard;
   int clipsize;
-
-  char *linebuf;     // Scratch buffer
 
   int cols;          // Console columns
   int lines;         // Console lines
-
-  char *content;     // Text Buffer
 
   int toppos;                // Text position for current top screen line
   int topline;               // Line number for top of screen
@@ -64,6 +59,12 @@ struct editor {
   int permissions;           // File permissions
 
   char filename[FILENAME_MAX];
+
+  char linebuf[LINEBUF];     // Scratch buffer
+  
+  char content[MAXSIZE];     // Text Buffer  
+  char tmpbuf[MAXSIZE];     // Text Buffer  
+  char clipboard[MAXSIZE];
 };
 
 //
@@ -84,9 +85,6 @@ int load_file(struct editor *ed, char *filename) {
   ed->permissions = statbuf.st_mode & 0777;
 
   if (length > MAXSIZE) goto err;
-
-  ed->content = (char *) malloc(MAXSIZE);
-  if (!ed->content) goto err;
   if (read(f, ed->content, length) != length) goto err;
 
   ed->anchor = -1;
@@ -96,10 +94,6 @@ int load_file(struct editor *ed, char *filename) {
 
 err:
   close(f);
-  if (ed->content) {
-    free(ed->content);
-    ed->content = NULL;
-  }
   return -1;
 }
 
@@ -343,7 +337,6 @@ void get_console_size(struct editor *ed) {
   ioctl(0, TIOCGWINSZ, &ws);
   ed->cols = ws.ws_col;
   ed->lines = ws.ws_row - 1;
-  ed->linebuf = realloc(ed->linebuf, ed->cols + LINEBUF_EXTRA);
 }
 
 //
@@ -912,7 +905,7 @@ void backspace(struct editor *ed) {
 
 void indent(struct editor *ed, char *indentation) {
   int start, end, i, lines, toplines, newline, ch;
-  char *buffer, *p;
+  char *p;
   int buflen;
   int width = strlen(indentation);
   int pos = ed->linepos + ed->col;
@@ -934,11 +927,9 @@ void indent(struct editor *ed, char *indentation) {
     if (get(ed, i) == '\n') newline = 1;
   }
   buflen = end - start + lines * width;
-  buffer = malloc(buflen);
-  if (!buffer) return;
 
   newline = 1;
-  p = buffer;
+  p = ed->tmpbuf;
   for (i = start; i < end; i++) {
     if (newline) {
       memcpy(p, indentation, width);
@@ -950,8 +941,7 @@ void indent(struct editor *ed, char *indentation) {
     if (ch == '\n') newline = 1;
   }
 
-  replace(ed, start, end - start, buffer, buflen);
-  free(buffer);  
+  replace(ed, start, end - start, ed->tmpbuf, buflen);
 
   if (ed->anchor < pos) {
     pos += width * lines;
@@ -969,7 +959,7 @@ void indent(struct editor *ed, char *indentation) {
 
 void unindent(struct editor *ed, char *indentation) {
   int start, end, i, newline, ch, shrinkage, topofs;
-  char *buffer, *p;
+  char *p;
   int width = strlen(indentation);
   int pos = ed->linepos + ed->col;
   if (!get_selection(ed, &start, &end)) {
@@ -977,11 +967,8 @@ void unindent(struct editor *ed, char *indentation) {
     end = ed->linepos + line_length(ed, ed->linepos);
   }
 
-  buffer = malloc(end - start);
-  if (!buffer) return;
-
   newline = 1;
-  p = buffer;
+  p = ed->tmpbuf;
   i = start;
   shrinkage = 0;
   topofs = 0;
@@ -1000,13 +987,9 @@ void unindent(struct editor *ed, char *indentation) {
     if (ch == '\n') newline = 1;
   }
 
-  if (!shrinkage) {
-    free(buffer);
-    return;
-  }
+  if (!shrinkage) { return; }
 
-  replace(ed, start, end - start, buffer, p - buffer);
-  free(buffer);
+  replace(ed, start, end - start, ed->tmpbuf, p - ed->tmpbuf);
 
   if (ed->anchor < pos) {
     pos -= shrinkage;
@@ -1046,9 +1029,6 @@ void copy_selection_or_line(struct editor *ed) {
     if (f_sec) pclose(f_sec);
     if (f_clip) pclose(f_clip);
   } else {  
-    ed->clipsize = selend - selstart;
-    ed->clipboard = (char *) realloc(ed->clipboard, ed->clipsize);
-    if (!ed->clipboard) return;
     strncpy(ed->clipboard, ed->content+selstart, ed->clipsize);
   }
 }
@@ -1085,21 +1065,15 @@ void paste_selection(struct editor *ed) {
 
 void duplicate_selection_or_line(struct editor *ed) {
   int selstart, selend, sellen;
-  char* buf;
   
   get_selection_or_line(ed, &selstart, &selend);
 
   sellen = selend - selstart;
 
-  buf = malloc(sellen);
-  if (!buf) return;
-  
-  strncpy(buf, ed->content + selstart, sellen);
+  strncpy(ed->tmpbuf, ed->content + selstart, sellen);
 
-  insert(ed, ed->linepos + ed->col, buf, sellen);
+  insert(ed, ed->linepos + ed->col, ed->tmpbuf, sellen);
   ed->refresh = 1;
-
-  free(buf);
 }
 
 //
@@ -1122,21 +1096,18 @@ void save_editor(struct editor *ed) {
 
 void find_text(struct editor *ed, char* search) {
   int slen, selstart, selend;
-  int own_search = 0; //tracks ownership of search string to determine if it should be freed
 
   if (!search) {
+    search = ed->tmpbuf;
     if (!get_selection(ed, &selstart, &selend)) {
       if (!prompt(ed, "Find: ", 1)) {
         ed->refresh = 1;
         return;
       }    
-      search = strdup(ed->linebuf);
+      strncpy(search, ed->linebuf, strlen(ed->linebuf));
     } else {
-      search = malloc(selend - selstart);
       strncpy(search, ed->content + selstart, selend - selstart);
-      own_search = 1;
     }
-    if (!search) return;
   }
   
   slen = strlen(search);
@@ -1154,7 +1125,6 @@ void find_text(struct editor *ed, char* search) {
     }
   }
   ed->refresh = 1;
-  if (own_search) free(search);
 }
 
 void goto_line(struct editor *ed, int lineno) {
@@ -1295,17 +1265,16 @@ int main(int argc, char *argv[]) {
   struct termios tio;
   struct termios orig_tio;
 
-  struct editor *ed = (struct editor *) malloc(sizeof(struct editor));
-  memset(ed, 0, sizeof(struct editor));
+  struct editor ed;
 
   if (argc < 2) return 0;
 
-  if (load_file(ed, argv[1]) < 0) {
+  if (load_file(&ed, argv[1]) < 0) {
     perror(argv[1]);
     return 0;
   }
 
-  if (argc >= 3) goto_anything(ed, argv[2]);
+  if (argc >= 3) goto_anything(&ed, argv[2]);
 
   setvbuf(stdout, NULL, 0, 8192);
 
@@ -1314,23 +1283,18 @@ int main(int argc, char *argv[]) {
   tcsetattr(0, TCSANOW, &tio);
   linux_console = getenv("TERM") && !strcmp(getenv("TERM"), "linux");
 
-  get_console_size(ed);
+  get_console_size(&ed);
   sigemptyset(&blocked_sigmask);
   sigaddset(&blocked_sigmask, SIGINT);
   sigaddset(&blocked_sigmask, SIGTSTP);
   sigaddset(&blocked_sigmask, SIGABRT);
   sigprocmask(SIG_BLOCK, &blocked_sigmask, &orig_sigmask);
 
-  if (ed) { edit(ed); }
+  edit(&ed);
 
-  printf(GOTO_LINE_COL, ed->lines + 2, 1);
+  printf(GOTO_LINE_COL, ed.lines + 2, 1);
   fputs(RESET_COLOR CLREOL, stdout);
   tcsetattr(0, TCSANOW, &orig_tio);   
-
-  if (ed->content) free(ed->content);
-  if (ed->clipboard) free(ed->clipboard);
-  if (ed->linebuf) free(ed->linebuf);
-  free(ed);
 
   setbuf(stdout, NULL);
   sigprocmask(SIG_SETMASK, &orig_sigmask, NULL);
