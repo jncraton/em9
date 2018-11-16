@@ -14,12 +14,12 @@ expect {
   }
   "Col 1" {
     send_user "Successful first draw\n"
-    send "my test string"
+    send "unicode string λ"
   }
 }
 
 expect {
-  "my test string" {
+  "unicode string λ" {
     send_user "\nEntered string echoed\n"
     # Ctrl+s
     send "\x13"

@@ -495,7 +495,13 @@ enum key_codes get_key() {
 
     case 0x7F: return KEY_BACKSPACE;
 
-    default: return ch;
+    default:
+      if ((ch & 0b10000000) == 0b00000000) { return ch; }
+      if ((ch & 0b11100000) == 0b11000000) { 
+        return ((int)ch << 8) + getchar();
+        //return (int)(ch & 0b00011111) << 6 | ((int)getchar() & 0b00111111);
+      }
+      return 0;
   }
 }
 
@@ -1251,6 +1257,10 @@ void edit(struct editor *ed) {
         case ctrl('x'): cut_selection_or_line(ed); break;
         case ctrl('v'): paste_selection(ed); break;
         case ctrl('s'): save_editor(ed); break;
+        default:
+          insert_char(ed, ((char*)&key)[0]);
+          insert_char(ed, ((char*)&key)[1]);
+          break;
       }
     }
   }
