@@ -1191,6 +1191,7 @@ void redraw_screen(struct editor *ed) {
 void edit(struct editor *ed) {
   int done = 0;
   int key;
+  int i;
 
   ed->refresh = 1;
   while (!done) {
@@ -1272,7 +1273,7 @@ void edit(struct editor *ed) {
         default:
           erase_selection(ed);
           insert(ed, ed->linepos + ed->col, (char*)&key, 1);
-          for (int i = 1; *((char*)(&key) + i) & 0b10000000; i++) {
+          for (i = 1; *((char*)(&key) + i) & 0b10000000; i++) {
             insert(ed, ed->linepos + ed->col, (char*)(&key) + i, 1);
           }
 
