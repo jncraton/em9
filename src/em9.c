@@ -133,8 +133,8 @@ void replace(struct editor *ed, int pos, int len, char *buf, int bufsize) {
   ed->dirty=1;
 }
 
-int get(struct editor *ed, int pos) {
-  if (pos >= (int) strlen(ed->content)) return -1;
+char get(struct editor *ed, int pos) {
+  if (pos >= MAXSIZE) return 0;
   return ed->content[pos];
 }
 
@@ -148,9 +148,19 @@ char* text_ptr(struct editor *ed, int pos) {
 
 int line_length(struct editor *ed, int linepos) {
 	int pos;
+	int len = 0;
   for (pos = linepos;;pos++) {
     int ch = get(ed, pos);
-    if (ch < 0 || ch == '\n' || ch == '\r') return pos - linepos;
+    if (!(ch & 0b10000000)) { len++; } // Increment once per code point
+    if (ch == 0 || ch == '\n' || ch == '\r') return len;
+  }
+}
+
+int line_bytes(struct editor *ed, int linepos) {
+	int pos;
+  for (pos = linepos;;pos++) {
+    char ch = get(ed, pos);
+    if (ch == 0 || ch == '\n' || ch == '\r') return pos - linepos;
   }
 }
 
@@ -169,15 +179,15 @@ int align_grapheme(struct editor *ed, int pos) {
 int next_line(struct editor *ed, int pos, int dir) {
   pos = line_start(ed, pos);
 	
-  if (dir > 0) pos += line_length(ed, pos);
+  if (dir > 0) pos += line_bytes(ed, pos);
   
   pos += dir;
 
-  pos = align_grapheme(ed, pos);
+  //pos = align_grapheme(ed, pos);
 
   if (pos < 0) return -1;
-  int ch = get(ed, pos);
-  if (ch < 0) return -1;
+  char ch = get(ed, pos);
+  if (!ch) return -1;
   
   return line_start(ed, pos);
 }
@@ -624,7 +634,9 @@ void display_line(struct editor *ed, int pos, int fullline) {
       } else {
         *bufptr++ = ch;
       }
-      col++;
+      if (ch < 0b10000000) {
+        col++;
+      }
     }
 
     p++;
