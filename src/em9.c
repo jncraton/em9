@@ -169,21 +169,12 @@ int line_start(struct editor *ed, int pos) {
   return pos;
 }
 
-int align_grapheme(struct editor *ed, int pos) {
-  while (ed->content[pos] & 0b10000000) {
-    pos++;
-  }
-  return pos;
-}
-
 int next_line(struct editor *ed, int pos, int dir) {
   pos = line_start(ed, pos);
 	
   if (dir > 0) pos += line_bytes(ed, pos);
   
   pos += dir;
-
-  //pos = align_grapheme(ed, pos);
 
   if (pos < 0) return -1;
   char ch = get(ed, pos);
@@ -773,7 +764,6 @@ void right(struct editor *ed, int select) {
   update_selection(ed, select);
   if (ed->col < line_length(ed, ed->linepos)) {
     ed->col++;
-    ed->col = align_grapheme(ed, ed->col);
   } else {
     int newpos = next_line(ed, ed->linepos, 1);
     if (newpos < 0) return;
