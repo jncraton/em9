@@ -1272,8 +1272,11 @@ void edit(struct editor *ed) {
         default:
           erase_selection(ed);
           insert(ed, ed->linepos + ed->col, (char*)&key, 1);
-          insert(ed, ed->linepos + ed->col, (char*)&key+1, 1);
-          ed->col+=2;
+          for (int i = 1; *((char*)(&key) + i) & 0b10000000; i++) {
+            insert(ed, ed->linepos + ed->col, (char*)(&key) + i, 1);
+          }
+
+          ed->col++;
           ed->lastcol = ed->col;
           adjust(ed);
           if (!ed->refresh) ed->lineupdate = 1;
