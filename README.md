@@ -1,7 +1,5 @@
 # em9
 
-λ
-
 [![Build Status](https://travis-ci.org/jncraton/em9.svg?branch=master)](https://travis-ci.org/jncraton/em9)
 
 A simple text editor using modern GUI keybindings. The name "nano" was
