@@ -66,28 +66,23 @@ struct editor {
 };
 
 int load_file(struct editor *ed, char *filename) {
-  struct stat statbuf;
-  int length;
   int f;
 
   if (!realpath(filename, ed->filename)) return -1;
   f = open(ed->filename, O_RDONLY | O_BINARY);
   if (f < 0) return -1;
 
-  if (fstat(f, &statbuf) < 0) goto err;
-  length = statbuf.st_size;
-
-  if (length > MAXSIZE) goto err;
-  if (read(f, ed->content, length) != length) goto err;
+  int res = read(f, ed->content, MAXSIZE);
+  
+  if (res == MAXSIZE || res < 0) {
+    close(f);
+    return -1;
+  }
 
   ed->anchor = -1;
 
   close(f);
   return 0;
-
-err:
-  close(f);
-  return -1;
 }
 
 int save_file(struct editor *ed) {
