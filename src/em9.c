@@ -923,7 +923,8 @@ void indent(struct editor *ed, char *indentation) {
   int pos = ed->linepos + ed->col;
 
   if (!get_selection(ed, &start, &end)) {
-    insert_char(ed, '\t');
+    insert(ed, ed->linepos + ed->col, indentation, width);
+    ed->refresh=1;
     return;
   }
 
