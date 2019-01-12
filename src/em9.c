@@ -1281,10 +1281,6 @@ void edit(struct editor *ed) {
   }
 }
 
-//
-// main
-//
-
 int main(int argc, char *argv[]) {
   sigset_t blocked_sigmask, orig_sigmask;
   struct termios tio;
