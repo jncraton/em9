@@ -1110,15 +1110,15 @@ void find_text(struct editor *ed, char* search) {
   int slen, selstart, selend;
 
   if (!search) {
-    search = ed->tmpbuf;
     if (!get_selection(ed, &selstart, &selend)) {
       if (!prompt(ed, "Find: ", 1)) {
         ed->refresh = 1;
         return;
-      }    
-      strncpy(search, ed->linebuf, strlen(ed->linebuf));
+      }
+      search = ed->linebuf;
     } else {
-      strncpy(search, ed->content + selstart, selend - selstart);
+      strncpy(ed->tmpbuf, ed->content + selstart, selend - selstart);
+    	search = ed->tmpbuf;
     }
   }
   
