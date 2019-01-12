@@ -674,6 +674,9 @@ void draw_screen(struct editor *ed) {
 
 void position_cursor(struct editor *ed) {
   int col = column(ed, ed->linepos, ed->col);
+  if (ed->anchor != -1 && ed->anchor < ed->linepos + ed->col) {
+    col = col - 1;
+  }
   printf(GOTO_LINE_COL, ed->line - ed->topline + 1, col - ed->margin + 1);
 }
 
