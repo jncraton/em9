@@ -143,7 +143,7 @@ int line_length(struct editor *ed, int linepos) {
   for (pos = linepos;;pos++) {
     int ch = get(ed, pos);
     if (!(ch & 0b10000000)) { len++; } // Increment once per code point
-    if (ch == 0 || ch == '\n' || ch == '\r') return len;
+    if (ch == 0 || ch == '\n' || ch == '\r') return len-1;
   }
 }
 
