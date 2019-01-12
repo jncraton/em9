@@ -87,7 +87,7 @@ int load_file(struct editor *ed, char *filename) {
 int save_file(struct editor *ed) {
   int f;
 
-  f = open(ed->filename, O_CREAT | O_TRUNC | O_WRONLY);
+  f = open(ed->filename, O_TRUNC | O_WRONLY);
   if (f < 0) return -1;
 
   if (write(f, ed->content, strlen(ed->content)) != (int) strlen(ed->content)) goto err;
