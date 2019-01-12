@@ -1128,7 +1128,7 @@ void find_text(struct editor *ed, char* search) {
     char *match;
     
     match = strstr(ed->content + ed->linepos + ed->col, search);
-    if (match != NULL) {
+    if (match) {
       int pos = match - ed->content;
       ed->anchor = pos;
       moveto(ed, pos + slen, 1);
