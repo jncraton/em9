@@ -922,11 +922,7 @@ void indent(struct editor *ed, char *indentation) {
   int width = strlen(indentation);
   int pos = ed->linepos + ed->col;
 
-  if (!get_selection(ed, &start, &end)) {
-    insert(ed, ed->linepos + ed->col, indentation, width);
-    ed->refresh=1;
-    return;
-  }
+  get_selection_or_line(ed, &start, &end);
 
   lines = 0;
   toplines = 0;
