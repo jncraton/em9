@@ -4,13 +4,13 @@ em9: src/em9.c
 	gcc -O0 -Wall -Wextra src/em9.c -o em9
 
 static: src/em9.c
-	gcc -Os -Wall -Wextra -static src/em9.c -o em9-static
+	gcc -Os -Wall -Wextra -flto -static src/em9.c -o em9-static
 	du -b em9-static
 	strip --strip-all em9-static
 	du -b em9-static
 
 release: src/em9.c
-	gcc -Os -Wall -Wextra src/em9.c -o em9
+	gcc -Os -Wall -Wextra -flto src/em9.c -o em9
 	du -b em9
 	strip --strip-all em9
 	du -b em9
