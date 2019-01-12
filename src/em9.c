@@ -56,8 +56,6 @@ struct editor {
   int lineupdate;    // Flag to trigger redraw of current line
   int dirty;         // Dirty flag is set when the editor buffer has been changed
 
-  int permissions;   // File permissions
-
   char filename[FILENAME_MAX];
 
   char linebuf[LINEBUF];  
@@ -78,7 +76,6 @@ int load_file(struct editor *ed, char *filename) {
 
   if (fstat(f, &statbuf) < 0) goto err;
   length = statbuf.st_size;
-  ed->permissions = statbuf.st_mode & 0777;
 
   if (length > MAXSIZE) goto err;
   if (read(f, ed->content, length) != length) goto err;
@@ -96,7 +93,7 @@ err:
 int save_file(struct editor *ed) {
   int f;
 
-  f = open(ed->filename, O_CREAT | O_TRUNC | O_WRONLY, ed->permissions);
+  f = open(ed->filename, O_CREAT | O_TRUNC | O_WRONLY);
   if (f < 0) return -1;
 
   if (write(f, ed->content, strlen(ed->content)) != (int) strlen(ed->content)) goto err;
