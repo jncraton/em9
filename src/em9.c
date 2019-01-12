@@ -42,34 +42,30 @@ struct editor {
   int cols;          // Console columns
   int lines;         // Console lines
 
-  int toppos;                // Text position for current top screen line
-  int topline;               // Line number for top of screen
-  int margin;                // Position for leftmost column on screen
+  int toppos;        // Text position for current top screen line
+  int topline;       // Line number for top of screen
+  int margin;        // Position for leftmost column on screen
 
-  int linepos;               // Text position for current line
-  int line;                  // Current document line
-  int col;                   // Current document column
-  int lastcol;               // Remembered column from last horizontal navigation
-  int anchor;                // Anchor position for selection
+  int linepos;       // Text position for current line
+  int line;          // Current document line
+  int col;           // Current document column
+  int lastcol;       // Remembered column from last horizontal navigation
+  int anchor;        // Anchor position for selection
   
-  int refresh;               // Flag to trigger screen redraw
-  int lineupdate;            // Flag to trigger redraw of current line
-  int dirty;                 // Dirty flag is set when the editor buffer has been changed
+  int refresh;       // Flag to trigger screen redraw
+  int lineupdate;    // Flag to trigger redraw of current line
+  int dirty;         // Dirty flag is set when the editor buffer has been changed
 
-  int permissions;           // File permissions
+  int permissions;   // File permissions
 
   char filename[FILENAME_MAX];
 
-  char linebuf[LINEBUF];     // Scratch buffer
-  
-  char content[MAXSIZE];     // Text Buffer  
-  char tmpbuf[MAXSIZE];     // Text Buffer  
+  char linebuf[LINEBUF];  
+
+  char content[MAXSIZE];
+  char tmpbuf[MAXSIZE];
   char clipboard[MAXSIZE];
 };
-
-//
-// Editor buffer functions
-//
 
 int load_file(struct editor *ed, char *filename) {
   struct stat statbuf;
@@ -130,16 +126,11 @@ void erase(struct editor *ed, int pos, int len) {
 void replace(struct editor *ed, int pos, int len, char *buf, int bufsize) {
   erase(ed, pos, len);
   insert(ed, pos, buf, bufsize);
-  ed->dirty=1;
 }
 
 char get(struct editor *ed, int pos) {
   if (pos >= MAXSIZE) return 0;
   return ed->content[pos];
-}
-
-char* text_ptr(struct editor *ed, int pos) {
-  return ed->content + pos;
 }
 
 //
@@ -184,7 +175,7 @@ int next_line(struct editor *ed, int pos, int dir) {
 }
 
 int column(struct editor *ed, int linepos, int col) {
-  char *p = text_ptr(ed, linepos);
+  char *p = ed->content + linepos;
   int c = 0;
   while (col > 0) {
     if (p == ed->content + MAXSIZE) break;
@@ -588,10 +579,10 @@ void display_line(struct editor *ed, int pos, int fullline) {
   int margin = ed->margin;
   int maxcol = ed->cols + margin;
   char *bufptr = ed->linebuf;
-  char *p = text_ptr(ed, pos);
+  char *p = ed->content + pos;
   int selstart, selend, ch;
   char *s;
-
+  
   get_selection(ed, &selstart, &selend);
   while (col < maxcol) {
     if (margin == 0) {
@@ -1031,6 +1022,8 @@ void copy_selection_or_line(struct editor *ed) {
   FILE *f_pri, *f_sec, *f_clip;
   
   int selstart, selend, pos;
+  
+  char c;
 
   get_selection_or_line(ed, &selstart, &selend);
   
@@ -1039,9 +1032,10 @@ void copy_selection_or_line(struct editor *ed) {
   f_clip = popen("xsel --clipboard", "w");
   if (f_pri) {
     for (pos = selstart; pos < selend; pos++) {
-      fprintf(f_pri, "%c", *text_ptr(ed, pos));
-      if (f_sec) fprintf(f_sec, "%c", *text_ptr(ed, pos));
-      if (f_clip) fprintf(f_clip, "%c", *text_ptr(ed, pos));
+     	c = *(ed->content + pos); 
+      fprintf(f_pri, "%c", c);
+      if (f_sec) fprintf(f_sec, "%c", c);
+      if (f_clip) fprintf(f_clip, "%c", c);
     }
     pclose(f_pri);
     if (f_sec) pclose(f_sec);
