@@ -1183,16 +1183,13 @@ void edit(struct editor *ed) {
     if (ed->refresh) {
       draw_screen(ed);
       draw_full_statusline(ed);
-      ed->refresh = 0;
-      ed->lineupdate = 0;
-    } else if (ed->lineupdate) {
-      update_line(ed);
-      ed->lineupdate = 0;
-      draw_statusline(ed);
     } else {
+      if (ed->lineupdate) { update_line(ed); }
       draw_statusline(ed);
     }
 
+    ed->refresh = ed->lineupdate = 0;
+            
     position_cursor(ed);
     fflush(stdout);
     key = get_key();
