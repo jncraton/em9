@@ -1197,77 +1197,66 @@ void edit(struct editor *ed) {
     fflush(stdout);
     key = get_key();
 
-    if (key >= ' ' && key <= 0x7F) {
-      insert_char(ed, (char) key);
-    } else {
-      switch (key) {
-        case ctrl('t'): goto_line(ed, 1); break;
-        case ctrl('b'): goto_line(ed, -1); break;
-
-        case KEY_UP: down(ed, 0, -1); break;
-        case KEY_DOWN: down(ed, 0, 1); break;
-        case KEY_LEFT: left(ed, 0); break;
-        case KEY_RIGHT: right(ed, 0); break;
-        case KEY_HOME: home(ed, 0); break;
-        case KEY_END: end(ed, 0); break;
-        case KEY_PGUP: down(ed, 0, -PAGESIZE); break;
-        case KEY_PGDN: down(ed, 0, PAGESIZE); break;
-        case ctrl(KEY_UP): down(ed, 0, -PAGESIZE); break;
-        case ctrl(KEY_DOWN): down(ed, 0, PAGESIZE); break;
-
-        case ctrl(KEY_RIGHT): wordright(ed, 0); break;
-        case ctrl(KEY_LEFT): wordleft(ed, 0); break;
-        case ctrl(KEY_HOME): goto_line(ed, 1); break;
-        case ctrl(KEY_END): goto_line(ed, -1); break;
-
-        case shift(KEY_UP): down(ed, 1, -1); break;
-        case shift(KEY_DOWN): down(ed, 1, 1); break;
-        case shift(KEY_LEFT): left(ed, 1); break;
-        case shift(KEY_RIGHT): right(ed, 1); break;
-        case shift(KEY_PGUP): down(ed, 1, -PAGESIZE); break;
-        case shift(KEY_PGDN): down(ed, 1, PAGESIZE); break;
-        case shift(KEY_HOME): home(ed, 1); break;
-        case shift(KEY_END): end(ed, 1); break;
-
-        case shift(ctrl(KEY_RIGHT)): wordright(ed, 1); break;
-        case shift(ctrl(KEY_LEFT)): wordleft(ed, 1); break;
-        case shift(ctrl(KEY_HOME)): goto_line(ed, 1); break;
-        case shift(ctrl(KEY_END)): goto_line(ed, -1); break;
-
-        case ctrl('a'): select_all(ed); break;
-        case ctrl('d'): duplicate_selection_or_line(ed); break;
-        case ctrl('c'): copy_selection_or_line(ed); break;
-        case KEY_F3: find_text(ed, 0); break;
-        case ctrl('f'): find_text(ed, 0); break;
-        case ctrl('l'): goto_line(ed, 0); break;
-        case ctrl('g'): goto_anything(ed, 0); break;
-        case ctrl('q'): done = 1; break;
-        case ctrl('w'): done = 1; break;
-        case ctrl('o'): done = 1; break;
-        case ctrl('n'): done = 1; break;
-        case KEY_TAB: indent(ed, INDENT); break;
-        case shift(KEY_TAB): unindent(ed, INDENT); break;
-
-        case KEY_ENTER: newline(ed); break;
-        case KEY_BACKSPACE: backspace(ed); break;
-        case KEY_DEL: del(ed); break;
-        case ctrl('k'): erase_selection_or_line(ed); break;
-        case ctrl('x'): cut_selection_or_line(ed); break;
-        case ctrl('v'): paste_selection(ed); break;
-        case ctrl('s'): save_editor(ed); break;
-        default:
-          erase_selection(ed);
-          insert(ed, ed->linepos + ed->col, (char*)&key, 1);
-          for (i = 1; *((char*)(&key) + i) & 0b10000000; i++) {
-            insert(ed, ed->linepos + ed->col, (char*)(&key) + i, 1);
-          }
-
-          ed->col++;
-          ed->lastcol = ed->col;
-          adjust(ed);
-          if (!ed->refresh) ed->lineupdate = 1;
-          break;
-      }
+    switch (key) {
+      case ctrl('t'): goto_line(ed, 1); break;
+      case ctrl('b'): goto_line(ed, -1); break;
+      case KEY_UP: down(ed, 0, -1); break;
+      case KEY_DOWN: down(ed, 0, 1); break;
+      case KEY_LEFT: left(ed, 0); break;
+      case KEY_RIGHT: right(ed, 0); break;
+      case KEY_HOME: home(ed, 0); break;
+      case KEY_END: end(ed, 0); break;
+      case KEY_PGUP: down(ed, 0, -PAGESIZE); break;
+      case KEY_PGDN: down(ed, 0, PAGESIZE); break;
+      case ctrl(KEY_UP): down(ed, 0, -PAGESIZE); break;
+      case ctrl(KEY_DOWN): down(ed, 0, PAGESIZE); break;
+      case ctrl(KEY_RIGHT): wordright(ed, 0); break;
+      case ctrl(KEY_LEFT): wordleft(ed, 0); break;
+      case ctrl(KEY_HOME): goto_line(ed, 1); break;
+      case ctrl(KEY_END): goto_line(ed, -1); break;
+      case shift(KEY_UP): down(ed, 1, -1); break;
+      case shift(KEY_DOWN): down(ed, 1, 1); break;
+      case shift(KEY_LEFT): left(ed, 1); break;
+      case shift(KEY_RIGHT): right(ed, 1); break;
+      case shift(KEY_PGUP): down(ed, 1, -PAGESIZE); break;
+      case shift(KEY_PGDN): down(ed, 1, PAGESIZE); break;
+      case shift(KEY_HOME): home(ed, 1); break;
+      case shift(KEY_END): end(ed, 1); break;
+      case shift(ctrl(KEY_RIGHT)): wordright(ed, 1); break;
+      case shift(ctrl(KEY_LEFT)): wordleft(ed, 1); break;
+      case shift(ctrl(KEY_HOME)): goto_line(ed, 1); break;
+      case shift(ctrl(KEY_END)): goto_line(ed, -1); break;
+      case ctrl('a'): select_all(ed); break;
+      case ctrl('d'): duplicate_selection_or_line(ed); break;
+      case ctrl('c'): copy_selection_or_line(ed); break;
+      case KEY_F3: find_text(ed, 0); break;
+      case ctrl('f'): find_text(ed, 0); break;
+      case ctrl('l'): goto_line(ed, 0); break;
+      case ctrl('g'): goto_anything(ed, 0); break;
+      case ctrl('q'): done = 1; break;
+      case ctrl('w'): done = 1; break;
+      case ctrl('o'): done = 1; break;
+      case ctrl('n'): done = 1; break;
+      case KEY_TAB: indent(ed, INDENT); break;
+      case shift(KEY_TAB): unindent(ed, INDENT); break;
+      case KEY_ENTER: newline(ed); break;
+      case KEY_BACKSPACE: backspace(ed); break;
+      case KEY_DEL: del(ed); break;
+      case ctrl('k'): erase_selection_or_line(ed); break;
+      case ctrl('x'): cut_selection_or_line(ed); break;
+      case ctrl('v'): paste_selection(ed); break;
+      case ctrl('s'): save_editor(ed); break;
+      default:
+        erase_selection(ed);
+        insert(ed, ed->linepos + ed->col, (char*)&key, 1);
+        for (i = 1; *((char*)(&key) + i) & 0b10000000; i++) {
+          insert(ed, ed->linepos + ed->col, (char*)(&key) + i, 1);
+        }
+        ed->col++;
+        ed->lastcol = ed->col;
+        adjust(ed);
+        if (!ed->refresh) ed->lineupdate = 1;
+        break;
     }
   }
 }
