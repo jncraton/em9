@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/jncraton/em9.svg?branch=master)](https://travis-ci.org/jncraton/em9)
 
-A simple text editor using modern GUI keybindings. The name "nano" was
+A small, simple text editor using modern GUI keybindings. The names "[pico](https://en.wikipedia.org/wiki/Pico_(text_editor))", "[micro](https://micro-editor.github.io/)", and "[nano](https://en.wikipedia.org/wiki/GNU_nano)" were
 already taken, so I went with em9 (E to the minus 9).
 
 My goal is for em9 to be able edit a text file effectively and do nothing
