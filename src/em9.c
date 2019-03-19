@@ -1303,7 +1303,7 @@ int main(int argc, char *argv[]) {
   edit(&ed);
 
   printf(GOTO_LINE_COL, ed.lines + 2, 1);
-  fputs(RESET_COLOR CLREOL, stdout);
+  fputs(RESET_COLOR CLREOL CLRSCR, stdout);
   tcsetattr(0, TCSANOW, &orig_tio);   
 
   setbuf(stdout, NULL);
