@@ -39,7 +39,7 @@ tool. You could use:
 
 - `find . -iname {filename}`
 
-- `git grep {text}` nding a file in a project
+- `git grep {text}`
 
 ## Insert content from a shell command
 
