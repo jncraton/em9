@@ -167,8 +167,7 @@ int next_line(struct editor *ed, int pos, int dir) {
   pos += dir;
 
   if (pos < 0) return -1;
-  int ch = get(ed, pos);
-  if (ch < 0) return -1;
+  if (pos > strlen(ed->content)) { return -1; }
   
   return line_start(ed, pos);
 }
@@ -850,35 +849,12 @@ void insert_char(struct editor *ed, char ch) {
 }
 
 void newline(struct editor *ed) {
-  int p;
-  char ch;
-
-  erase_selection(ed);
   insert(ed, ed->linepos + ed->col, "\n", 1);
-  ed->col = ed->lastcol = 0;
-  ed->line++;
-  p = ed->linepos;
-  ed->linepos = next_line(ed, ed->linepos, 1);
-  for (;;) {
-    ch = get(ed, p++);
-    if (ch == ' ' || ch == '\t') {
-      insert(ed, ed->linepos + ed->col, &ch, 1);
-      ed->col++;
-    } else {
-      break;
-    }
-  }
-  ed->lastcol = ed->col;
-  
+
   ed->refresh = 1;
 
-  if (ed->line >= ed->topline + ed->lines) {
-    ed->toppos = next_line(ed, ed->toppos, 1);
-    ed->topline++;
-    ed->refresh = 1;
-  }
-
-  adjust(ed);
+  down(ed, 0, 1);
+  home(ed, 0);
 }
 
 void del(struct editor *ed) {

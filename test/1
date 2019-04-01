@@ -14,6 +14,10 @@ expect {
   }
   "Col 1" {
     send_user "Successful first draw\n"
+    send "line 1\r"
+    send "line 2\r"
+    send "\r"
+    send "\r"
     send "unicode string λ"
   }
 }
