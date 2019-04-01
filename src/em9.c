@@ -167,7 +167,7 @@ int next_line(struct editor *ed, int pos, int dir) {
   pos += dir;
 
   if (pos < 0) return -1;
-  if (pos > strlen(ed->content)) { return -1; }
+  if ((unsigned int)pos > strlen(ed->content)) { return -1; }
   
   return line_start(ed, pos);
 }
