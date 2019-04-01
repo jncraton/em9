@@ -27,4 +27,4 @@ install: src/em9.c
 	mv em9 /usr/local/bin/	
 			
 clean:
-	rm em9*
+	rm -f em9*
