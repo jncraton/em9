@@ -3,6 +3,9 @@ all: em9
 makeheaders: src/makeheaders.c
 	gcc -O0 src/makeheaders.c -o makeheaders
 
+src/%.h: src/%.c makeheaders
+	./makeheaders $<
+
 em9: src/em9.c
 	gcc -O0 -Wall -Wextra src/em9.c -o em9
 
@@ -31,3 +34,4 @@ install: src/em9.c
 			
 clean:
 	rm -f em9*
+	rm -f src/*.h
