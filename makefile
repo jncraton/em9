@@ -1,5 +1,8 @@
 all: em9
 
+makeheaders: src/makeheaders.c
+	gcc -O0 src/makeheaders.c -o makeheaders
+
 em9: src/em9.c
 	gcc -O0 -Wall -Wextra src/em9.c -o em9
 
