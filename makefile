@@ -1,6 +1,6 @@
 all: em9
 
-CC_FLAGS=-Wall -Wextra -flto
+CC_FLAGS=-Wall -Wextra -flto -march=native
 
 makeheaders: src/makeheaders.c
 	gcc -O0 src/makeheaders.c -o makeheaders
