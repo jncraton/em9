@@ -12,17 +12,16 @@ makeheaders: src/makeheaders.c
 em9: src/keyboard.h src/keyboard.o src/main.o
 	gcc -O0 -Wall -Wextra $^ -o em9
 
+release: em9
+	du -b em9
+	strip --strip-all em9
+	du -b em9
+
 static: src/main.c
 	gcc -Os -Wall -Wextra -static src/main.c -o em9-static
 	du -b em9-static
 	strip --strip-all em9-static
 	du -b em9-static
-
-release: src/main.c
-	gcc -Os -Wall -Wextra src/main.c -o em9
-	du -b em9
-	strip --strip-all em9
-	du -b em9
 
 test: em9
 	rm -f test/1.txt
@@ -31,9 +30,8 @@ test: em9
 	cmp -s test/1.txt test/output1.txt
 	rm -f test/1.txt
 
-install: src/main.c
-	gcc -O3 src/main.c -o em9
-	mv em9 /usr/local/bin/	
+install: release
+	cp em9 /usr/local/bin/	
 			
 clean:
 	rm -f em9*
