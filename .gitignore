@@ -1,3 +1,4 @@
 em9*
+*.o
 *.xz
 test/1.txt
