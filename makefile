@@ -1,5 +1,7 @@
 all: em9
 
+CC_FLAGS=-Wall -Wextra -flto
+
 makeheaders: src/makeheaders.c
 	gcc -O0 src/makeheaders.c -o makeheaders
 
@@ -7,10 +9,10 @@ makeheaders: src/makeheaders.c
 	./makeheaders $<
 
 %.o: %.c
-	gcc -Wall -Wextra -c $< -o $@
+	gcc $(CC_FLAGS) -c $< -o $@
 
 em9: src/keyboard.h src/keyboard.o src/main.o
-	gcc -O0 -Wall -Wextra $^ -o em9
+	gcc -O0 $(CC_FLAGS) $^ -o em9
 
 release: em9
 	du -b em9
@@ -18,7 +20,7 @@ release: em9
 	du -b em9
 
 static: src/main.c
-	gcc -Os -Wall -Wextra -static src/main.c -o em9-static
+	gcc $(CC_FLAGS) -Os -static src/main.c -o em9-static
 	du -b em9-static
 	strip --strip-all em9-static
 	du -b em9-static
