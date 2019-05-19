@@ -1,22 +1,28 @@
 all: em9
 
+DEPS=src/keyboard.h src/keyboard.o src/main.o
+CC_FLAGS=-Wall -Wextra
+
 makeheaders: src/makeheaders.c
 	gcc -O0 src/makeheaders.c -o makeheaders
 
-src/%.h: src/%.c makeheaders
+%.h: %.c makeheaders
 	./makeheaders $<
 
-em9: src/em9.c
-	gcc -O0 -Wall -Wextra src/em9.c -o em9
+%.o: %.c
+	gcc $(CC_FLAGS) -c $< -o $@
 
-static: src/em9.c
-	gcc -Os -Wall -Wextra -static src/em9.c -o em9-static
+em9-debug: $(DEPS)
+	gcc $(CC_FLAGS) -O0 $^ -o em9
+
+em9-static: $(DEPS)
+	gcc $(CC_FLAGS) -Os -static $^ -o em9-static
 	du -b em9-static
 	strip --strip-all em9-static
 	du -b em9-static
 
-release: src/em9.c
-	gcc -Os -Wall -Wextra src/em9.c -o em9
+em9: $(DEPS)
+	gcc -O3 $(CC_FLAGS) $^ -o em9
 	du -b em9
 	strip --strip-all em9
 	du -b em9
@@ -28,10 +34,12 @@ test: em9
 	cmp -s test/1.txt test/output1.txt
 	rm -f test/1.txt
 
-install: src/em9.c
-	gcc -O3 src/em9.c -o em9
+install: em9
+	gcc -O3 src/main.c -o em9
 	mv em9 /usr/local/bin/	
-			
+
 clean:
 	rm -f em9*
 	rm -f src/*.h
+	rm -f src/*.o
+	rm -f makeheaders
