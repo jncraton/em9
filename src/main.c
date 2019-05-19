@@ -43,6 +43,8 @@ struct editor {
 
   int linepos;               // Text position for current line
   int line;                  // Current document line
+  int cursor_screen_line;    // Cursor screen line (tracked separately to facilitate wrapping)
+  int cursor_screen_col;     // Cursor screen line
   int col;                   // Current document column
   int lastcol;               // Remembered column from last horizontal navigation
   int anchor;                // Anchor position for selection
@@ -400,7 +402,11 @@ void draw_statusline(struct editor *ed) {
   fputs(ed->linebuf, stdout);
 }
 
-void display_line(struct editor *ed, int pos, int fullline) {
+unsigned int display_line(struct editor *ed, int pos, int fullline) {
+ /**
+  * Displays a line on the screen
+  * @return The number of characters printed, or zero if we printed the full line
+  */
   int hilite = 0;
   int col = 0;
   int margin = ed->margin;
@@ -473,33 +479,49 @@ void display_line(struct editor *ed, int pos, int fullline) {
   }
 
   fwrite(ed->linebuf, 1, bufptr - ed->linebuf, stdout);
-}
 
-void update_line(struct editor *ed) {
-  printf(GOTO_LINE_COL, ed->line - ed->topline + 1, 1);
-  display_line(ed, ed->linepos, 0);
+  if(col == maxcol) {
+    return maxcol;
+  } else {
+    return 0;
+  }
 }
 
 void draw_screen(struct editor *ed) {
   int pos;
-  int i;
+  int screen_line;
+  int bytes_written;
+
+  int col;
+  int line = ed->topline;
+  int cursor_col = column(ed, ed->linepos, ed->col);
 
   printf(GOTO_LINE_COL, 1, 1);
   fputs(TEXT_COLOR, stdout);
   pos = ed->toppos;
-  for (i = 0; i < ed->lines; i++) {
+  for (screen_line = 1; screen_line <= ed->lines; screen_line++) {
     if (pos < 0) {
       fputs(CLREOL "\r\n", stdout);
     } else {
-      display_line(ed, pos, 1);
-      pos = next_line(ed, pos, 1);
+      bytes_written = display_line(ed, pos, 1);
+      if (line == ed->line && col <= cursor_col) {
+        ed->cursor_screen_line = screen_line;
+        ed->cursor_screen_col = cursor_col - col + 1;
+      }
+      if (bytes_written) {
+        pos += bytes_written;
+        col += bytes_written;
+      } else {
+        line += 1;
+        pos = next_line(ed, pos, 1);
+        col = 0;
+      }
     }
   }
 }
 
 void position_cursor(struct editor *ed) {
-  int col = column(ed, ed->linepos, ed->col);
-  printf(GOTO_LINE_COL, ed->line - ed->topline + 1, col - ed->margin + 1);
+  printf(GOTO_LINE_COL, ed->cursor_screen_line, ed->cursor_screen_col);
 }
 
 //
@@ -536,6 +558,8 @@ void adjust(struct editor *ed) {
     ed->margin += 4;
     ed->refresh = 1;
   }
+
+  ed->refresh = 1;
 }
 
 int sign(int x) {
@@ -987,19 +1011,8 @@ void edit(struct editor *ed) {
 
   ed->refresh = 1;
   while (!done) {
-    if (ed->refresh) {
-      draw_screen(ed);
-      draw_full_statusline(ed);
-      ed->refresh = 0;
-      ed->lineupdate = 0;
-    } else if (ed->lineupdate) {
-      update_line(ed);
-      ed->lineupdate = 0;
-      draw_statusline(ed);
-    } else {
-      draw_statusline(ed);
-    }
-
+    draw_screen(ed);
+    draw_full_statusline(ed);
     position_cursor(ed);
     fflush(stdout);
     key = get_key();
