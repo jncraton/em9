@@ -1,3 +1,6 @@
 em9*
+*.o
+*.h
 *.xz
 test/1.txt
+makeheaders

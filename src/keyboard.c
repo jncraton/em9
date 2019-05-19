@@ -172,7 +172,6 @@ enum key_codes get_key() {
       if ((ch & 0b10000000) == 0b00000000) { return ch; }
       if ((ch & 0b11100000) == 0b11000000) { 
         return ((int)ch << 8) + getchar();
-        //return (int)(ch & 0b00011111) << 6 | ((int)getchar() & 0b00111111);
       }
       return 0;
   }
