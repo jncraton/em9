@@ -51,10 +51,6 @@ struct editor {
   int lastcol;               // Remembered column from last horizontal navigation
   int anchor;                // Anchor position for selection
   
-  int refresh;               // Flag to trigger screen redraw
-  int lineupdate;            // Flag to trigger redraw of current line
-  int dirty;                 // Dirty flag is set when the editor buffer has been changed
-
   int permissions;           // File permissions
 
   char filename[FILENAME_MAX];
@@ -105,7 +101,6 @@ int save_file(struct editor *ed) {
   if (write(f, ed->content, strlen(ed->content)) != (int) strlen(ed->content)) goto err;
 
   close(f);
-  ed->dirty = 0;
   return 0;
 
 err:
@@ -118,18 +113,15 @@ void insert(struct editor *ed, int pos, char *buf, int bufsize) {
   memmove(ed->content + pos + bufsize, ed->content + pos, strlen(ed->content + pos)+1);
   // Overwrite the gap with new text
   memcpy(ed->content + pos, buf, bufsize);
-  ed->dirty=1;
 }
 
 void erase(struct editor *ed, int pos, int len) {
   memmove(ed->content + pos, ed->content + pos + len, strlen(ed->content + pos + len) + 1);
-  ed->dirty=1;
 }
 
 void replace(struct editor *ed, int pos, int len, char *buf, int bufsize) {
   erase(ed, pos, len);
   insert(ed, pos, buf, bufsize);
-  ed->dirty=1;
 }
 
 int get(struct editor *ed, int pos) {
@@ -202,7 +194,6 @@ void moveto(struct editor *ed, int pos, int center) {
         if (ed->topline > ed->line) {
           ed->toppos = ed->linepos;
           ed->topline--;
-          ed->refresh = 1;
           scroll = 1;
         }
       }
@@ -221,7 +212,6 @@ void moveto(struct editor *ed, int pos, int center) {
         if (ed->line >= ed->topline + ed->lines) {
           ed->toppos = next_line(ed, ed->toppos, 1);
           ed->topline++;
-          ed->refresh = 1;
           scroll = 1;
         }
       }
@@ -292,9 +282,7 @@ int get_selected_text(struct editor *ed, char *buffer, int size) {
 void update_selection(struct editor *ed, int select) {
   if (select) {
     if (ed->anchor == -1) ed->anchor = ed->linepos + ed->col;
-    ed->refresh = 1;
   } else {
-    if (ed->anchor != -1) ed->refresh = 1;
     ed->anchor = -1;
   }
 }
@@ -306,7 +294,6 @@ int erase_selection(struct editor *ed) {
   moveto(ed, selstart, 0);
   erase(ed, selstart, selend - selstart);
   ed->anchor = -1;
-  ed->refresh = 1;
   return 1;
 }
 
@@ -315,13 +302,11 @@ void erase_selection_or_line(struct editor *ed) {
     moveto(ed, ed->linepos, 0);
     erase(ed, ed->linepos, next_line(ed, ed->linepos, 1) - ed->linepos);
     ed->anchor = -1;
-    ed->refresh = 1;
   }
 }
 
 void select_all(struct editor *ed) {
   ed->anchor = 0;
-  ed->refresh = 1;
   moveto(ed, strlen(ed->content), 0);
 }
 
@@ -394,13 +379,13 @@ int ask() {
 void draw_full_statusline(struct editor *ed) {
   int namewidth = ed->cols - 19;
   printf(GOTO_LINE_COL, ed->lines + 1, 1);
-  sprintf(ed->linebuf, STATUS_COLOR "%*.*s%c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, -namewidth, namewidth, ed->filename, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
+  sprintf(ed->linebuf, STATUS_COLOR "%*.*s  Ln %-6dCol %-4d" CLREOL TEXT_COLOR, -namewidth, namewidth, ed->filename, ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
   fputs(ed->linebuf, stdout);
 }
 
 void draw_statusline(struct editor *ed) {
   printf(GOTO_LINE_COL, ed->lines + 1, ed->cols - 18);
-  sprintf(ed->linebuf, STATUS_COLOR "%c Ln %-6dCol %-4d" CLREOL TEXT_COLOR, ed->dirty ? '*' : ' ', ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
+  sprintf(ed->linebuf, STATUS_COLOR "  Ln %-6dCol %-4d" CLREOL TEXT_COLOR, ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
   fputs(ed->linebuf, stdout);
 }
 
@@ -536,13 +521,11 @@ void adjust(struct editor *ed) {
   if (ed->line < ed->topline) {
     ed->toppos = ed->linepos;
     ed->topline = ed->line;
-    ed->refresh = 1;
   }
 
   while (ed->line >= ed->topline + ed->lines) {
     ed->toppos = next_line(ed, ed->toppos, 1);
     ed->topline++;
-    ed->refresh = 1;
   }
 
   ll = line_length(ed, ed->linepos);
@@ -553,15 +536,11 @@ void adjust(struct editor *ed) {
   while (col < ed->margin) {
     ed->margin -= 4;
     if (ed->margin < 0) ed->margin = 0;
-    ed->refresh = 1;
   }
 
   while (col - ed->margin >= ed->cols) {
     ed->margin += 4;
-    ed->refresh = 1;
   }
-
-  ed->refresh = 1;
 }
 
 int sign(int x) {
@@ -641,7 +620,6 @@ void wordleft(struct editor *ed, int select) {
     if (pos < ed->linepos) {
       ed->linepos = next_line(ed, ed->linepos, -1);
       ed->line--;
-      ed->refresh = 1;
     }
   }
   ed->col = pos - ed->linepos;
@@ -670,7 +648,6 @@ void wordright(struct editor *ed, int select) {
       ed->linepos = next;
       next = next_line(ed, ed->linepos, 1);
       ed->line++;
-      ed->refresh = 1;
     }
   }
   ed->col = pos - ed->linepos;
@@ -700,13 +677,10 @@ void insert_char(struct editor *ed, char ch) {
   ed->col++;
   ed->lastcol = ed->col;
   adjust(ed);
-  if (!ed->refresh) ed->lineupdate = 1;
 }
 
 void newline(struct editor *ed) {
   insert(ed, ed->linepos + ed->col, "\n", 1);
-
-  ed->refresh = 1;
 
   down(ed, 0, 1);
   home(ed, 0);
@@ -724,12 +698,6 @@ void del(struct editor *ed) {
   if (ch == '\r') {
     ch = get(ed, pos);
     if (ch == '\n') erase(ed, pos, 1);
-  }
-
-  if (ch == '\n') {
-    ed->refresh = 1;
-  } else {
-    ed->lineupdate = 1;
   }
 }
 
@@ -791,7 +759,6 @@ void indent(struct editor *ed, char *indentation) {
   ed->col = ed->lastcol = pos - ed->linepos;
 
   adjust(ed);
-  ed->refresh = 1;
 }
 
 void unindent(struct editor *ed, char *indentation) {
@@ -838,7 +805,6 @@ void unindent(struct editor *ed, char *indentation) {
   ed->linepos = line_start(ed, pos);
   ed->col = ed->lastcol = pos - ed->linepos;
 
-  ed->refresh = 1;
   adjust(ed);
 }
 
@@ -896,8 +862,6 @@ void paste_selection(struct editor *ed) {
     insert(ed, ed->linepos + ed->col, ed->clipboard, ed->clipsize);
     moveto(ed, ed->linepos + ed->col + ed->clipsize, 0);
   }
-
-  ed->refresh = 1;
 }
 
 void duplicate_selection_or_line(struct editor *ed) {
@@ -910,7 +874,6 @@ void duplicate_selection_or_line(struct editor *ed) {
   strncpy(ed->tmpbuf, ed->content + selstart, sellen);
 
   insert(ed, ed->linepos + ed->col, ed->tmpbuf, sellen);
-  ed->refresh = 1;
 }
 
 //
@@ -920,15 +883,11 @@ void duplicate_selection_or_line(struct editor *ed) {
 void save_editor(struct editor *ed) {
   int rc;
   
-  if (!ed->dirty) return;
-  
   rc = save_file(ed);
   if (rc < 0) {
     display_message(ed, "Error %d saving document (%s)", errno, strerror(errno));
     sleep(5);
   }
-
-  ed->refresh = 1;
 }
 
 void find_text(struct editor *ed, char* search) {
@@ -938,7 +897,6 @@ void find_text(struct editor *ed, char* search) {
     search = ed->tmpbuf;
     if (!get_selection(ed, &selstart, &selend)) {
       if (!prompt(ed, "Find: ", 1)) {
-        ed->refresh = 1;
         return;
       }    
       strncpy(search, ed->linebuf, strlen(ed->linebuf));
@@ -961,7 +919,6 @@ void find_text(struct editor *ed, char* search) {
       putchar('\007');
     }
   }
-  ed->refresh = 1;
 }
 
 void goto_line(struct editor *ed, int lineno) {
@@ -984,7 +941,6 @@ void goto_line(struct editor *ed, int lineno) {
   } else {
     putchar('\007');
   }
-  ed->refresh = 1;
 }
 
 void goto_anything(struct editor *ed, char *query) {
@@ -1011,7 +967,6 @@ void edit(struct editor *ed) {
   int done = 0;
   int key;
 
-  ed->refresh = 1;
   while (!done) {
     draw_screen(ed);
     draw_full_statusline(ed);
