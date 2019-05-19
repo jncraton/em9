@@ -510,7 +510,7 @@ void draw_screen(struct editor *ed) {
         ed->cursor_screen_line = screen_line;
         ed->cursor_screen_col = cursor_col - col + 1;
       }
-      if (bytes_written) {
+      if (bytes_written && WRAP) {
         pos += bytes_written;
         col += bytes_written;
       } else {
