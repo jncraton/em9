@@ -15,6 +15,8 @@
 
 #define O_BINARY 0
 
+#define WRAP 0
+
 #define MAXSIZE      32768
 #define LINEBUF      512
 
@@ -409,7 +411,7 @@ unsigned int display_line(struct editor *ed, int pos, int fullline) {
   */
   int hilite = 0;
   int col = 0;
-  int margin = ed->margin;
+  int margin = WRAP ? ed->margin : 0;
   int maxcol = ed->cols + margin;
   char *bufptr = ed->linebuf;
   char *p = text_ptr(ed, pos);
