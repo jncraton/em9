@@ -381,12 +381,6 @@ void draw_full_statusline(struct editor *ed) {
   fputs(ed->linebuf, stdout);
 }
 
-void draw_statusline(struct editor *ed) {
-  printf(GOTO_LINE_COL, ed->lines + 1, ed->cols - 18);
-  sprintf(ed->linebuf, STATUS_COLOR "  Ln %-6dCol %-4d" CLREOL TEXT_COLOR, ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
-  fputs(ed->linebuf, stdout);
-}
-
 unsigned int display_line(struct editor *ed, int pos, int fullline) {
  /**
   * Displays a line on the screen
