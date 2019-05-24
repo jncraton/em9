@@ -15,8 +15,6 @@
 
 #define O_BINARY 0
 
-#define WRAP 1
-
 #define MAXSIZE      32768
 #define LINEBUF      512
 
@@ -396,8 +394,7 @@ unsigned int display_line(struct editor *ed, int pos, int fullline) {
   */
   int hilite = 0;
   int col = 0;
-  int margin = WRAP ? 0 : ed->margin;
-  int maxcol = ed->cols + margin;
+  int maxcol = ed->cols;
   char *bufptr = ed->linebuf;
   char *p = text_ptr(ed, pos);
   int selstart, selend, ch;
@@ -405,14 +402,12 @@ unsigned int display_line(struct editor *ed, int pos, int fullline) {
 
   get_selection(ed, &selstart, &selend);
   while (col < maxcol) {
-    if (margin == 0) {
-      if (!hilite && pos >= selstart && pos < selend) {
-        for (s = SELECT_COLOR; *s; s++) *bufptr++ = *s;
-        hilite = 1;
-      } else if (hilite && pos >= selend) {
-        for (s = TEXT_COLOR; *s; s++) *bufptr++ = *s;
-        hilite = 0;
-      }
+    if (!hilite && pos >= selstart && pos < selend) {
+      for (s = SELECT_COLOR; *s; s++) *bufptr++ = *s;
+      hilite = 1;
+    } else if (hilite && pos >= selend) {
+      for (s = TEXT_COLOR; *s; s++) *bufptr++ = *s;
+      hilite = 0;
     }
 
     if (p == ed->content + MAXSIZE) break;
@@ -422,20 +417,12 @@ unsigned int display_line(struct editor *ed, int pos, int fullline) {
     if (ch == '\t') {
       int spaces = TABSIZE - col % TABSIZE;
       while (spaces > 0 && col < maxcol) {
-        if (margin > 0) {
-          margin--;
-        } else {
-          *bufptr++ = ' ';
-        }
+        *bufptr++ = ' ';
         col++;
         spaces--;
       }
     } else {
-      if (margin > 0) {
-        margin--;
-      } else {
-        *bufptr++ = ch;
-      }
+      *bufptr++ = ch;
       col++;
     }
 
@@ -449,7 +436,7 @@ unsigned int display_line(struct editor *ed, int pos, int fullline) {
       col++;
     }
   } else {
-    if (col == margin) *bufptr++ = ' ';
+    if (col == 0) *bufptr++ = ' ';
   }
 
   if (col < maxcol) {
@@ -495,7 +482,7 @@ void draw_screen(struct editor *ed) {
         ed->cursor_screen_line = screen_line;
         ed->cursor_screen_col = cursor_col - col + 1;
       }
-      if (bytes_written && WRAP) {
+      if (bytes_written) {
         pos += bytes_written;
         col += bytes_written;
       } else {
