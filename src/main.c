@@ -456,10 +456,7 @@ unsigned int display_line(struct editor *ed, int pos, int fullline) {
 }
 
 void draw_screen(struct editor *ed) {
-  int screen_line;
-  int bytes_written;
-
-  int col;
+  int screen_line, bytes_written, col;
   int line = ed->topline;
   int cursor_col = column(ed, ed->linepos, ed->col);
   int pos = ed->toppos;
