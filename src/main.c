@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -863,7 +862,7 @@ void save_editor(struct editor *ed) {
   
   rc = save_file(ed);
   if (rc < 0) {
-    display_message(ed, "Error %d saving document (%s)", errno, strerror(errno));
+    display_message(ed, "Error saving document");
     sleep(5);
   }
 }
