@@ -387,9 +387,6 @@ void end(struct editor *ed, int select) {
 void insert_char(struct editor *ed, char ch) {
   erase_selection(ed);
   insert(ed, ed->linepos + ed->col, &ch, 1);
-  ed->col++;
-  ed->lastcol = ed->col;
-  adjust(ed);
 }
 
 void newline(struct editor *ed) {
