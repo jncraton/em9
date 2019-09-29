@@ -58,13 +58,29 @@ struct editor {
   char clipboard[MAXSIZE];
 };
 
-//
-// Editor buffer functions
-//
+void insert(struct editor *ed, int pos, char *buf, int bufsize) {
+  int i;
+
+  for (i = 0; i < bufsize; i++) {
+    if (ed->linebuf[0] == '\r') {
+    } else { 
+      ed->line_contents[ed->line][ed->col] = buf[i];
+      ed->col++;
+
+      if (buf[i] == '\n' || ed->col > LINE_LENGTH) {
+        ed->line++;
+        ed->col = 0;
+      }
+    }
+  }
+
+  if (ed->line > ed->buffer_lines) {
+    ed->buffer_lines = ed->line;
+  }
+}
 
 int load_file(struct editor *ed, char *filename) {
   struct stat statbuf;
-  int line=0, col=0;
   int f;
 
   if (!realpath(filename, ed->filename)) return -1;
@@ -75,21 +91,13 @@ int load_file(struct editor *ed, char *filename) {
   ed->permissions = statbuf.st_mode & 0777;
 
   while (read(f, ed->linebuf, 1) > 0) {
-    if (ed->linebuf[0] == '\r') {
-    } else { 
-      ed->line_contents[line][col] = ed->linebuf[0];
-      col++;
-
-      if (ed->linebuf[0] == '\n' || col > LINE_LENGTH) {
-        line++;
-        col = 0;
-      }
-    }
+    insert(ed, -1, ed->linebuf, 1);
   }
 
-  ed->buffer_lines = line + 1;
-  
   ed->anchor = -1;
+
+  ed->line = 0;
+  ed->col = 0;
 
   close(f);
   return 0;
@@ -107,9 +115,6 @@ int save_file(struct editor *ed) {
 
   close(f);
   return 0;
-}
-
-void insert(struct editor *ed, int pos, char *buf, int bufsize) {
 }
 
 void erase(struct editor *ed, int pos, int len) {
