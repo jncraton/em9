@@ -374,9 +374,9 @@ int ask() {
 }
 
 void draw_full_statusline(struct editor *ed) {
-  int namewidth = ed->cols - 19;
+  int namewidth = ed->cols - 36;
   printf(GOTO_LINE_COL, ed->lines + 1, 1);
-  sprintf(ed->linebuf, STATUS_COLOR "%*.*s  Ln %-6dCol %-4d" CLREOL TEXT_COLOR, -namewidth, namewidth, ed->filename, ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
+  sprintf(ed->linebuf, STATUS_COLOR "%*.*s  SLn %-3d SCol %-3d Ln %-6dCol %-4d" CLREOL TEXT_COLOR, -namewidth, namewidth, ed->filename, ed->cursor_screen_line, ed->cursor_screen_col, ed->line + 1, column(ed, ed->linepos, ed->col) + 1);
   fputs(ed->linebuf, stdout);
 }
 
