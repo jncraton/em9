@@ -316,17 +316,25 @@ void down(struct editor *ed, int select, int lines) {
     ed->line += lines;
     ed->col = 0;
   }
-
-  adjust(ed);
 }
 
 void left(struct editor *ed, int select) {
-  if (ed->col > 0) ed->col--;
+  if (ed->col > 0) {
+    ed->col--;
+  } else {
+    if (ed->line > 0) {
+      down(ed, select, -1);
+      end(ed, select);
+    }
+  }
 }
 
 void right(struct editor *ed, int select) {
   if (ed->col+1 < strlen(ed->line_contents[ed->line])) {
     ed->col++;
+  } else {
+    ed->line++;
+    ed->col = 0;
   }
 }
 
@@ -369,9 +377,7 @@ void home(struct editor *ed, int select) {
 }
 
 void end(struct editor *ed, int select) {
-  update_selection(ed, select);
-  ed->col = ed->lastcol = line_length(ed, ed->linepos);
-  adjust(ed);
+  ed->col = strlen(ed->line_contents[ed->line]) - 1;
 }
 
 //
