@@ -14,8 +14,12 @@
 
 #define O_BINARY 0
 
-#define MAXSIZE      32768
-#define LINEBUF      512
+#define LINE_LENGTH    88
+#define MAX_LINE_BYTES 128
+#define MAX_LINES      16384 
+
+#define MAXSIZE        32768
+#define LINEBUF        512
 
 #define TABSIZE        2
 #define PAGESIZE       20
