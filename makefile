@@ -1,7 +1,7 @@
 all: em9
 
 DEPS=src/keyboard.h src/keyboard.o src/main.o
-CC_FLAGS=-Wall -Wextra
+CC_FLAGS=
 
 makeheaders: src/makeheaders.c
 	gcc -O0 src/makeheaders.c -o makeheaders
