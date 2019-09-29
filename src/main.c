@@ -314,7 +314,7 @@ int sign(int x) {
 }
 
 void down(struct editor *ed, int select, int lines) {
-  if (ed->line + lines >= 0 && ed->line + lines < ed->lines) {
+  if (ed->line + lines >= 0 && ed->line + lines < ed->buffer_lines) {
     ed->line += lines;
   }
 
