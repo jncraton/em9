@@ -299,7 +299,7 @@ void draw_screen(struct editor *ed) {
 }
 
 void position_cursor(struct editor *ed) {
-  printf(GOTO_LINE_COL, 1, ed->col);
+  printf(GOTO_LINE_COL, 1, ed->col + 1);
 }
 
 //
@@ -316,43 +316,20 @@ int sign(int x) {
 void down(struct editor *ed, int select, int lines) {
   if (ed->line + lines >= 0 && ed->line + lines < ed->buffer_lines) {
     ed->line += lines;
+    ed->col = 0;
   }
 
   adjust(ed);
 }
 
 void left(struct editor *ed, int select) {
-  update_selection(ed, select);
-  if (ed->col > 0) {
-    ed->col--;
-  } else {
-    int newpos = next_line(ed, ed->linepos, -1);
-    if (newpos < 0) return;
-
-    ed->col = line_length(ed, newpos);
-    ed->linepos = newpos;
-    ed->line--;
-  }
-
-  ed->lastcol = ed->col;
-  adjust(ed);
+  if (ed->col > 0) ed->col--;
 }
 
 void right(struct editor *ed, int select) {
-  update_selection(ed, select);
-  if (ed->col < line_length(ed, ed->linepos)) {
+  if (ed->col+1 < strlen(ed->line_contents[ed->line])) {
     ed->col++;
-  } else {
-    int newpos = next_line(ed, ed->linepos, 1);
-    if (newpos < 0) return;
-
-    ed->col = 0;
-    ed->linepos = newpos;
-    ed->line++;
   }
-
-  ed->lastcol = ed->col;
-  adjust(ed);
 }
 
 int wordchar(int ch) {
