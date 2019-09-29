@@ -299,7 +299,7 @@ void draw_screen(struct editor *ed) {
 }
 
 void position_cursor(struct editor *ed) {
-  printf(GOTO_LINE_COL, ed->line, ed->col);
+  printf(GOTO_LINE_COL, 1, ed->col);
 }
 
 //
