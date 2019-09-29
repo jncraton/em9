@@ -1,4 +1,5 @@
-# em9
+em9
+===
 
 [![Build Status](https://travis-ci.org/jncraton/em9.svg?branch=master)](https://travis-ci.org/jncraton/em9)
 
@@ -14,32 +15,40 @@ My goal is for em9 to be able edit a text file effectively and do nothing else. 
 
 - Support plugins. The source code is short and simple, so you can add any features that matter to you. If a feature is small and you believe it would be useful to most users, feel free to send a pull request.
 
-# How Do I...
+How Do I...
+===========
 
 em9 is designed to force you to use native operating system and shell features in place of embedding these features in the editor itself. Here are some example operations.
 
-## Find and replace in a file
+Find and replace in a file
+--------------------------
 
 Don't use em9. I'd recommend `sed -i s/needle/replacement/`
 
-## Append content from a shell command
+Append content from a shell command
+-----------------------------------
 
 Don't use em9. Use `command >> file`.
 
-## Find a file in a project
+Find a file in a project
+------------------------
 
-Don't use em9. It is a text editor, not an IDE or project management tool. You could use:
+Don't use em9. It is a text editor, not an IDE or project management tool. You could perhaps use:
 
 - `find . -iname {filename}`
 
 - `git grep {text}`
 
-## Insert content from a shell command
+- `fd {filename}`
+
+Insert content from a shell command
+-----------------------------------
 
 1. Use `command | xsel` to get the output in the clipboard.
 
 2. Open the file with em9 and paste away.
 
-## Open a file to a specific line
+Open a file to a specific line
+------------------------------
 
 Invoke as `em9 [filename] :linenumber` e.g. `em9 README.md :10`.
