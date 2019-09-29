@@ -275,12 +275,7 @@ void display_line(struct editor *ed, int line) {
   * Displays a line on the screen
   * @return The number of characters printed, or zero if we printed the full line
   */
-  fputs("\r", stdout);
   fputs(ed->line_contents[line], stdout);
-
-  if ( !strchr(ed->line_contents[line], '\n')) {
-    fputs("\n", stdout);
-  }
 }
 
 void draw_screen(struct editor *ed) {
@@ -289,11 +284,10 @@ void draw_screen(struct editor *ed) {
   int cursor_col = column(ed, ed->linepos, ed->col);
   int pos = ed->toppos;
 
-  printf("\e[1;1H\e[2J"); // Clear the screen
   printf(GOTO_LINE_COL, 1, 1);
   fputs(TEXT_COLOR, stdout);
 
-  for (screen_line = ed->line; screen_line < ed->line + ed->lines; screen_line++) {
+  for (screen_line = ed->line; screen_line <= ed->lines; screen_line++) {
     display_line(ed, screen_line);
   }
 }
