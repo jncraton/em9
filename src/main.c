@@ -42,10 +42,6 @@ struct editor {
   char line_contents[MAX_LINES][MAX_LINE_BYTES];
   int buffer_lines;
 
-  int toppos;                // Text position for current top screen line
-  int topline;               // Line number for top of screen
-  int margin;                // Position for leftmost column on screen
-
   int linepos;               // Text position for current line
   int line;                  // Current document line
   int col;                   // Current document column
@@ -284,10 +280,7 @@ void display_line(struct editor *ed, int line) {
 }
 
 void draw_screen(struct editor *ed) {
-  int screen_line, col = 0;
-  int line = ed->topline;
-  int cursor_col = column(ed, ed->linepos, ed->col);
-  int pos = ed->toppos;
+  int screen_line;
 
   printf("\e[1;1H\e[2J"); // Clear the screen
   printf(GOTO_LINE_COL, 1, 1);
@@ -418,56 +411,6 @@ void backspace(struct editor *ed) {
 }
 
 void indent(struct editor *ed, char *indentation) {
-  int start, end, i, lines, toplines, newline, ch;
-  char *p;
-  int buflen;
-  int width = strlen(indentation);
-  int pos = ed->linepos + ed->col;
-
-  if (!get_selection(ed, &start, &end)) {
-    insert_char(ed, '\t');
-    return;
-  }
-
-  lines = 0;
-  toplines = 0;
-  newline = 1;
-  for (i = start; i < end; i++) {
-    if (i == ed->toppos) toplines = lines;
-    if (newline) {
-      lines++;
-      newline = 0;
-    }
-    if (get(ed, i) == '\n') newline = 1;
-  }
-  buflen = end - start + lines * width;
-
-  newline = 1;
-  p = ed->tmpbuf;
-  for (i = start; i < end; i++) {
-    if (newline) {
-      memcpy(p, indentation, width);
-      p += width;
-      newline = 0;
-    }
-    ch = get(ed, i);
-    *p++ = ch;
-    if (ch == '\n') newline = 1;
-  }
-
-  replace(ed, start, end - start, ed->tmpbuf, buflen);
-
-  if (ed->anchor < pos) {
-    pos += width * lines;
-  } else {
-    ed->anchor += width * lines;
-  }
-
-  ed->toppos += width * toplines;
-  ed->linepos = line_start(ed, pos);
-  ed->col = ed->lastcol = pos - ed->linepos;
-
-  adjust(ed);
 }
 
 void unindent(struct editor *ed, char *indentation) {
