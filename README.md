@@ -23,7 +23,7 @@ em9 is designed to force you to use native operating system and shell features i
 Find and replace in a file
 --------------------------
 
-Don't use em9. I'd recommend `sed -i s/needle/replacement/`
+Don't use em9. I'd recommend `sed -i s/needle/replacement/g {filename}`
 
 Append content from a shell command
 -----------------------------------
